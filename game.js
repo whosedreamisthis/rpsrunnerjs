@@ -1,31 +1,32 @@
 // game.js
 
-// --- Constants (from consts.py, and new ones) ---
+// --- Constants ---
 const WINDOW_WIDTH = 700;
-const WINDOW_HEIGHT = 350; // Increased height to accommodate taller buttons and spacing
-const GROUND_HEIGHT = 110; // This is relative to the bottom of the screen, so it will be WINDOW_HEIGHT - GROUND_HEIGHT_OFFSET in Phaser
-// Removed GROUND_Y_OFFSET and PLAYER_Y_OFFSET as they will be re-calculated based on new positioning
-const GAME_OBJECTS_BASE_Y_RATIO = 0.75; // Player and Enemy base at 75% of window height from top
-const GROUND_OFFSET_FROM_GAME_OBJECTS = 0; // Changed to 0 to align player/enemy with ground top
+const WINDOW_HEIGHT = 350;
+const GAME_OBJECTS_BASE_Y_RATIO = 0.75;
+const GROUND_OFFSET_FROM_GAME_OBJECTS = 0;
 
 const ENEMY_TYPES = ['R', 'P', 'S'];
-const SPEED_UPGRADE_FRAME = 1200; // In score
-const GOD_MODE = false; // Corresponds to god_mode in Python
+const INITIAL_SPEED_UP_SCORE = 3; // First speed up happens when score hits 3
+const SUBSEQUENT_SPEED_UP_INTERVAL = 8; // Speed up every 10 points after that (e.g., 13, 23, 33...)
+const SPEED_INCREMENT_AMOUNT = 1.5; // NEW: How much speed increases per threshold (e.g., 1.0, 1.5, 2.0)
 
-// Colors (Phaser uses hexadecimal for colors, defined as integers here)
+const GOD_MODE = true;
+
+// Colors
 const WHITE = 0xffffff;
 const BLACK = 0x000000;
-const GREEN = 0x00c800; // (0,200,0)
-const DARK_GRAY = 0x313638; // (49,54,56)
-const OFFWHITE = 0xf0f0f0; // New color for background
-const ROCK_COLOR = 0x59c3c3; // (89,195,195)
-const PAPER_COLOR = 0x774c60; // (119,76,96)
-const SCISSORS_COLOR = 0x84a98c; // (132,169,140)
-const DARK_BUTTON_BACKGROUND_COLOR = 0x1a1a1a; // A very dark gray, close to black
+const GREEN = 0x00c800;
+const DARK_GRAY = 0x313638;
+const OFFWHITE = 0xf0f0f0;
+const ROCK_COLOR = 0x59c3c3;
+const PAPER_COLOR = 0x774c60;
+const SCISSORS_COLOR = 0x84a98c;
+const DARK_BUTTON_BACKGROUND_COLOR = 0x1a1a1a;
 
-// New constants for ground appearance
-const VISIBLE_GROUND_LINE_HEIGHT = 25; // Estimated height of the visible ground line in ground.png
-const GROUND_FILL_COLOR = 0x000000; // Changed to BLACK for the fill below the line
+// Ground appearance
+const VISIBLE_GROUND_LINE_HEIGHT = 25;
+const GROUND_FILL_COLOR = 0x000000;
 
 // Vertical adjustment for ground and hands
 const VERTICAL_MOVE_UP_AMOUNT = 25;
@@ -35,21 +36,20 @@ const ORIGINAL_MIN_SPAWN_DURATION = 2.0; // seconds
 const ORIGINAL_MAX_SPAWN_DURATION = 4.0; // seconds
 
 // UI Button Constants
-const BUTTON_HORIZONTAL_PADDING = 20; // Margin from left/right edges of the screen
-const BUTTON_SPACING = 10; // Space between each RPS button
-const BUTTON_PADDING_X = 20; // Horizontal padding within buttons
-const BUTTON_PADDING_Y = 15; // Vertical padding within buttons
-// BUTTON_BOTTOM_MARGIN is no longer a fixed constant here, its value is derived
-const PAUSE_BUTTON_RIGHT_MARGIN = 20; // Margin from right edge of the screen for pause button
+const BUTTON_HORIZONTAL_PADDING = 20;
+const BUTTON_SPACING = 10;
+const BUTTON_PADDING_X = 20;
+const BUTTON_PADDING_Y = 15;
+const PAUSE_BUTTON_RIGHT_MARGIN = 20;
 
-// Button Text Content - Renamed back to R, P, S
+// Button Text Content
 const BUTTON_TEXT = {
 	R: 'R',
 	P: 'P',
 	S: 'S',
 };
 
-// Asset URLs - This constant MUST be defined before preload() tries to use it.
+// Asset URLs
 const ASSET_URLS = {
 	rock: 'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/images/rock.png',
 	scissors:
@@ -64,7 +64,7 @@ const ASSET_URLS = {
 		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/sounds/jump.wav',
 };
 
-const SFX_VOLUME = 0.5; // NEW: Adjust this value (0.0 to 1.0) for desired SFX loudness
+const SFX_VOLUME = 0.5;
 
 // --- Game Scene ---
 class MainScene extends Phaser.Scene {
@@ -77,15 +77,15 @@ class MainScene extends Phaser.Scene {
 		this.playerType = null;
 		this.player = null;
 		this.ground = null;
-		this.enemies = null; // Phaser group for enemies
+		this.enemies = null;
 		this.ground_speed = 2; // Initial ground speed
-		this.current_frame = 0; // For speed upgrade tracking
+		this.next_speed_upgrade_score_threshold = INITIAL_SPEED_UP_SCORE;
 
 		// Enemy spawn management
-		this.time_since_last_spawn = 0; // ms
-		this.time_until_next_spawn = 0; // ms
-		this.base_min_spawn_duration = ORIGINAL_MIN_SPAWN_DURATION * 1000; // ms
-		this.base_max_spawn_duration = ORIGINAL_MAX_SPAWN_DURATION * 1000; // ms
+		this.time_since_last_spawn = 0;
+		this.time_until_next_spawn = 0;
+		this.base_min_spawn_duration = ORIGINAL_MIN_SPAWN_DURATION * 1000;
+		this.base_max_spawn_duration = ORIGINAL_MAX_SPAWN_DURATION * 1000;
 		this.min_wait_time = this.base_min_spawn_duration;
 		this.max_wait_time = this.base_max_spawn_duration;
 
@@ -100,18 +100,16 @@ class MainScene extends Phaser.Scene {
 
 		// Pause Button
 		this.pauseButton = null;
-		this.isPaused = false; // State to track if the game is paused
-		this.pausedText = null; // Text overlay for "PAUSED"
+		this.isPaused = false;
+		this.pausedText = null;
 
-		this.original_ground_speed = this.ground_speed; // For spawn rate adjustment
+		this.original_ground_speed = this.ground_speed;
 
-		// Calculated Y position for player/enemy base (their feet)
 		this.gameObjectBaseY =
 			WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO - VERTICAL_MOVE_UP_AMOUNT;
 	}
 
 	preload() {
-		// ASSET_URLS is used here
 		this.load.image('rock', ASSET_URLS.rock);
 		this.load.image('scissors', ASSET_URLS.scissors);
 		this.load.image('paper', ASSET_URLS.paper);
@@ -123,14 +121,10 @@ class MainScene extends Phaser.Scene {
 	}
 
 	create() {
-		// --- Game Initialization ---
 		this.physics.world.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-		// Changed background color to OFFWHITE
 		this.cameras.main.setBackgroundColor(OFFWHITE);
 
-		// Ground setup (using two tile sprites for infinite scrolling of the ground line)
-		const groundY = this.gameObjectBaseY + GROUND_OFFSET_FROM_GAME_OBJECTS; // This is the top of the visible ground line
-
+		const groundY = this.gameObjectBaseY + GROUND_OFFSET_FROM_GAME_OBJECTS;
 		this.ground1 = this.add
 			.tileSprite(
 				0,
@@ -150,10 +144,8 @@ class MainScene extends Phaser.Scene {
 			)
 			.setOrigin(0, 0);
 
-		// Add rectangles to fill the space below the ground line
 		const groundFillY = groundY + VISIBLE_GROUND_LINE_HEIGHT;
 		const groundFillHeight = WINDOW_HEIGHT - groundFillY;
-
 		this.groundFill1 = this.add
 			.rectangle(
 				0,
@@ -173,20 +165,17 @@ class MainScene extends Phaser.Scene {
 			)
 			.setOrigin(0, 0);
 
-		// Enemies Group (for collision detection)
 		this.enemies = this.physics.add.group();
 
-		// Player setup - positioned based on new GAME_OBJECTS_BASE_Y_RATIO
 		this.player = this.physics.add
-			.sprite(35, this.gameObjectBaseY + 10, 'paper') // Added 10 pixels
-			.setScale(40 / 120) // Original scale factor
-			.setOrigin(0.5, 1); // Origin at the bottom center
+			.sprite(35, this.gameObjectBaseY + 10, 'paper')
+			.setScale(40 / 120)
+			.setOrigin(0.5, 1);
 		this.player.setCollideWorldBounds(true);
-		this.player.body.setAllowGravity(false); // Player doesn't fall down
+		this.player.body.setAllowGravity(false);
 
 		this.randomizePlayerType();
 
-		// Score display - Aligned with the left side of the player sprite
 		this.high_score = this.loadHighScore();
 		this.scoreText = this.add
 			.text(
@@ -198,29 +187,26 @@ class MainScene extends Phaser.Scene {
 					.toString()
 					.padStart(4, '0')}`,
 				{
-					fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
-					fontSize: '20px', // Original font size
-					fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'), // Corrected color assignment for text
-					align: 'left', // Explicitly left aligned
+					fontFamily: 'Courier Prime, Courier, monospace',
+					fontSize: '20px',
+					fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
+					align: 'left',
 				}
 			)
-			.setOrigin(0, 0.5); // Set origin to top-left for X, centered vertically for Y
+			.setOrigin(0, 0.5);
 
-		// Pause Button
 		this.pauseButton = this.add
 			.text(WINDOW_WIDTH - PAUSE_BUTTON_RIGHT_MARGIN, 20, '||', {
 				fontFamily: 'Courier Prime, Courier, monospace',
-				fontSize: '20px', // Matches score font size
+				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				// Removed padding for a tighter fit, matching score text's visual size
 			})
-			.setOrigin(1, 0.5) // Align right edge with its x, vertically centered
+			.setOrigin(1, 0.5)
 			.setInteractive()
 			.on('pointerdown', this.togglePause, this)
-			.setVisible(false); // Hide initially
+			.setVisible(false);
 
-		// "PAUSED" text overlay
 		this.pausedText = this.add
 			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'PAUSED', {
 				fontFamily: 'Courier Prime, Courier, monospace',
@@ -230,33 +216,26 @@ class MainScene extends Phaser.Scene {
 			.setOrigin(0.5)
 			.setVisible(false);
 
-		// Game Over Text
 		this.gameOverText = this.add
 			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'GAME OVER!', {
-				fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
+				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '50px',
-				fill: '#' + ROCK_COLOR.toString(16).padStart(6, '0'), // Corrected color assignment for text
+				fill: '#' + ROCK_COLOR.toString(16).padStart(6, '0'),
 			})
 			.setOrigin(0.5)
 			.setVisible(false);
 
-		// --- RPS Buttons Setup (Expanded to screen width and taller) ---
+		// --- RPS Buttons Setup ---
 		const totalButtonAreaWidth =
 			WINDOW_WIDTH - 2 * BUTTON_HORIZONTAL_PADDING;
 		const singleButtonCalculatedWidth =
 			(totalButtonAreaWidth - 2 * BUTTON_SPACING) / 3;
-
-		// Calculate button height based on font size and padding
-		const buttonTextHeight = 32; // This matches the font size set in createRPSButton
-		const singleButtonHeight = buttonTextHeight + 2 * BUTTON_PADDING_Y; // Total height of the button graphic
-
-		// Calculate the visual bottom edge of the ground image
+		const buttonTextHeight = 32;
+		const singleButtonHeight = buttonTextHeight + 2 * BUTTON_PADDING_Y;
 		const visualGroundBottomY =
 			WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO -
 			VERTICAL_MOVE_UP_AMOUNT +
 			VISIBLE_GROUND_LINE_HEIGHT;
-
-		// Calculate button Y position to center them between the bottom of the ground and the bottom of the window
 		const buttonY = (visualGroundBottomY + WINDOW_HEIGHT) / 2;
 
 		const rockX =
@@ -264,8 +243,6 @@ class MainScene extends Phaser.Scene {
 		const paperX = rockX + singleButtonCalculatedWidth + BUTTON_SPACING;
 		const scissorsX = paperX + singleButtonCalculatedWidth + BUTTON_SPACING;
 
-		// Pass full text and calculated width to createRPSButton
-		// Button background is now OFFWHITE, and text color uses the specific RPS color
 		this.rockButton = this.createRPSButton(
 			rockX,
 			buttonY,
@@ -293,31 +270,30 @@ class MainScene extends Phaser.Scene {
 			SCISSORS_COLOR,
 			singleButtonCalculatedWidth
 		);
-		this.setRPSButtonsVisibility(false); // Hide initially
+		this.setRPSButtonsVisibility(false);
 
-		// Start Button - Adjusted to overlap the P button and match its style
+		// Start Button - Ensured Courier font
 		this.startButton = this.add
 			.text(paperX, buttonY, 'START GAME', {
-				// X-position changed to paperX
-				fontFamily: 'Courier Prime', // Matched RPS button font
-				fontSize: '32px', // Matched RPS button font size
-				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'), // Changed fill to PAPER_COLOR
-				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'), // Changed background to OFFWHITE
-				padding: { x: 10, y: BUTTON_PADDING_Y }, // Adjusted x padding for centering
-				fixedWidth: singleButtonCalculatedWidth, // Matched RPS button width
-				align: 'center', // Center text within the fixed width
+				fontFamily: 'Courier Prime, Courier, monospace',
+				fontSize: '32px',
+				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'),
+				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
+				padding: { x: 10, y: BUTTON_PADDING_Y },
+				fixedWidth: singleButtonCalculatedWidth,
+				align: 'center',
 			})
 			.setOrigin(0.5)
 			.setInteractive()
 			.on('pointerdown', () => this.startGame());
 
-		// Restart Button - Now matches the Paper button's light background and text color
+		// Restart Button - Ensured Courier font
 		this.restartButton = this.add
 			.text(paperX, buttonY, 'Restart', {
-				fontFamily: 'Courier Prime',
+				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '32px',
 				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'), // Changed to OFFWHITE for light background
+				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
 				padding: { x: 10, y: BUTTON_PADDING_Y },
 				fixedWidth: singleButtonCalculatedWidth,
 				align: 'center',
@@ -327,13 +303,11 @@ class MainScene extends Phaser.Scene {
 			.on('pointerdown', () => this.startGame())
 			.setVisible(false);
 
-		// Set initial spawn time
 		this.time_until_next_spawn = Phaser.Math.Between(
 			this.min_wait_time,
 			this.max_wait_time
 		);
 
-		// --- Collision Handler ---
 		this.physics.add.overlap(
 			this.player,
 			this.enemies,
@@ -344,7 +318,6 @@ class MainScene extends Phaser.Scene {
 	}
 
 	update(time, delta) {
-		// Game logic only runs if gameStarted, not game_over, AND not paused
 		if (!this.gameStarted || this.game_over || this.isPaused) {
 			return;
 		}
@@ -352,16 +325,16 @@ class MainScene extends Phaser.Scene {
 		// --- Ground Scrolling ---
 		this.ground1.x -= this.ground_speed;
 		this.ground2.x -= this.ground_speed;
-		this.groundFill1.x -= this.ground_speed; // Also scroll the ground fill
-		this.groundFill2.x -= this.ground_speed; // Also scroll the ground fill
+		this.groundFill1.x -= this.ground_speed;
+		this.groundFill2.x -= this.ground_speed;
 
 		if (this.ground1.x + this.ground1.width < 0) {
 			this.ground1.x = this.ground2.x + this.ground2.width;
-			this.groundFill1.x = this.groundFill2.x + this.groundFill2.width; // Also reset ground fill
+			this.groundFill1.x = this.groundFill2.x + this.groundFill2.width;
 		}
 		if (this.ground2.x + this.ground2.width < 0) {
 			this.ground2.x = this.ground1.x + this.ground1.width;
-			this.groundFill2.x = this.groundFill1.x + this.groundFill1.width; // Also reset ground fill
+			this.groundFill2.x = this.groundFill1.x + this.groundFill1.width;
 		}
 
 		// --- Enemy Spawning ---
@@ -379,21 +352,29 @@ class MainScene extends Phaser.Scene {
 		this.enemies.children.each((enemy) => {
 			enemy.x -= this.ground_speed;
 			if (enemy.x < -enemy.width / 2) {
-				enemy.destroy(); // Remove enemy when off screen
-				// No direct penalty for missing, just won't score
+				enemy.destroy();
 			}
 		});
 
 		// --- Speed Upgrade ---
-		// Use current_score for speed checks as a direct translation
-		if (
+		// Loop as long as the current score has reached or exceeded the next threshold
+		while (
 			this.current_score > 0 &&
-			this.current_score % SPEED_UPGRADE_FRAME === 0 &&
-			this.current_frame != this.current_score
+			this.current_score >= this.next_speed_upgrade_score_threshold
 		) {
-			// Check to prevent repeated upgrade on same score
-			this.ground_speed += 1;
-			this.current_frame = this.current_score; // Set frame to current score to track last upgrade
+			this.ground_speed += SPEED_INCREMENT_AMOUNT; // CHANGED: Speed increases by SPEED_INCREMENT_AMOUNT
+
+			// Calculate the next threshold based on whether it's the initial or subsequent increase
+			if (
+				this.next_speed_upgrade_score_threshold ===
+				INITIAL_SPEED_UP_SCORE
+			) {
+				this.next_speed_upgrade_score_threshold =
+					INITIAL_SPEED_UP_SCORE + SUBSEQUENT_SPEED_UP_INTERVAL;
+			} else {
+				this.next_speed_upgrade_score_threshold +=
+					SUBSEQUENT_SPEED_UP_INTERVAL;
+			}
 			this.adjustSpawnRate(this.ground_speed);
 		}
 	}
@@ -401,27 +382,26 @@ class MainScene extends Phaser.Scene {
 	startGame() {
 		this.gameStarted = true;
 		this.game_over = false;
-		this.isPaused = false; // Ensure game starts unpaused
+		this.isPaused = false;
 		this.current_score = 0;
-		this.ground_speed = 2; // Reset speed
+		this.ground_speed = 2; // Reset initial speed
 		this.time_since_last_spawn = 0;
-		this.enemies.clear(true, true); // Clear all existing enemies
-		this.spawnEnemy(); // Spawn the first enemy immediately
+		this.enemies.clear(true, true);
+		this.spawnEnemy();
 		this.setRPSButtonsVisibility(true);
 		this.gameOverText.setVisible(false);
 		this.restartButton.setVisible(false);
-		this.startButton.setVisible(false); // Make sure start button is hidden after game starts
-		this.pauseButton.setVisible(true); // Show pause button
-		this.pauseButton.setText('||'); // Ensure pause icon
+		this.startButton.setVisible(false);
+		this.pauseButton.setVisible(true);
+		this.pauseButton.setText('||');
 		if (this.pausedText) {
-			this.pausedText.setVisible(false); // Hide "PAUSED" text
+			this.pausedText.setVisible(false);
 		}
 		this.randomizePlayerType();
 		this.updateScoreDisplay();
-		this.adjustSpawnRate(this.ground_speed); // Reset spawn rate as well
-		this.current_frame = 0; // Reset speed upgrade tracker
+		this.adjustSpawnRate(this.ground_speed);
+		this.next_speed_upgrade_score_threshold = INITIAL_SPEED_UP_SCORE;
 
-		// Ensure physics are resumed if starting from a paused/game over state
 		this.physics.world.resume();
 	}
 
@@ -429,14 +409,12 @@ class MainScene extends Phaser.Scene {
 		this.isPaused = !this.isPaused;
 
 		if (this.isPaused) {
-			// Scene's update loop is controlled by the 'if (this.isPaused)' check in update()
-			this.physics.world.pause(); // Pauses all physics bodies
-			this.pauseButton.setText('\u25B6'); // Change icon to UNICODE play symbol
-			this.pausedText.setVisible(true); // Show "PAUSED" text
+			this.physics.world.pause();
+			this.pauseButton.setText('\u25B6');
+			this.pausedText.setVisible(true);
 		} else {
-			// Scene's update loop will resume because 'this.isPaused' is now false
-			this.physics.world.resume(); // Resumes all physics bodies
-			this.pausedText.setVisible(false); // Hide "PAUSED" text
+			this.physics.world.resume();
+			this.pausedText.setVisible(false);
 		}
 	}
 
@@ -445,7 +423,6 @@ class MainScene extends Phaser.Scene {
 		this.player.setTexture(this.getAssetKeyFromType(this.playerType));
 	}
 
-	// Corrected createRPSButton signature for clarity
 	createRPSButton(
 		x,
 		y,
@@ -455,28 +432,25 @@ class MainScene extends Phaser.Scene {
 		buttonColor,
 		buttonWidth
 	) {
-		// Renamed 'color' to 'buttonColor'
-		// Convert integer hex color to CSS hex string
-		const bgColor = '#' + OFFWHITE.toString(16).padStart(6, '0'); // Background is OFFWHITE
-		const textColor = '#' + buttonColor.toString(16).padStart(6, '0'); // Text color is the distinct RPS color
+		const bgColor = '#' + OFFWHITE.toString(16).padStart(6, '0');
+		const textColor = '#' + buttonColor.toString(16).padStart(6, '0');
 
 		const button = this.add
 			.text(x, y, buttonText, {
-				fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
-				fontSize: '32px', // Increased font size here
+				fontFamily: 'Courier Prime, Courier, monospace',
+				fontSize: '32px',
 				fill: textColor,
 				backgroundColor: bgColor,
-				padding: { x: BUTTON_PADDING_X, y: BUTTON_PADDING_Y }, // Use new padding constants
+				padding: { x: BUTTON_PADDING_X, y: BUTTON_PADDING_Y },
 				fixedWidth: buttonWidth,
-				align: 'center', // Center text within the fixed width
+				align: 'center',
 			})
-			.setOrigin(0.5) // Origin for positioning
+			.setOrigin(0.5)
 			.setInteractive()
 			.on('pointerdown', () => {
 				if (!this.game_over && !this.isPaused) {
-					// Only allow type change if not game over and not paused
-					this.playerType = buttonType; // Use the actual type (R,P,S) for game logic
-					this.player.setTexture(assetKey); // Set player texture
+					this.playerType = buttonType;
+					this.player.setTexture(assetKey);
 				}
 			});
 		return button;
@@ -491,14 +465,13 @@ class MainScene extends Phaser.Scene {
 	spawnEnemy() {
 		const enemyType = Phaser.Math.RND.pick(ENEMY_TYPES);
 		const enemyAssetKey = this.getAssetKeyFromType(enemyType);
-		// Enemy Y position - positioned based on new GAME_OBJECTS_BASE_Y_RATIO
 		const enemy = this.enemies
-			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY + 10, enemyAssetKey) // Added 10 pixels
-			.setScale(40 / 120) // Scale to match player
-			.setOrigin(0.5, 1); // Origin at the bottom center
-		enemy.type = enemyType; // Attach type to the sprite for duel logic
+			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY + 10, enemyAssetKey)
+			.setScale(40 / 120)
+			.setOrigin(0.5, 1);
+		enemy.type = enemyType;
 		enemy.body.setAllowGravity(false);
-		enemy.body.setSize(enemy.width * 0.8, enemy.height * 0.8); // Adjust hit box for better collision
+		enemy.body.setSize(enemy.width * 0.8, enemy.height * 0.8);
 		enemy.body.setOffset(enemy.width * 0.1, enemy.height * 0.2);
 	}
 
@@ -511,44 +484,39 @@ class MainScene extends Phaser.Scene {
 			case 'S':
 				return 'scissors';
 			default:
-				return 'paper'; // Fallback
+				return 'paper';
 		}
 	}
 
 	handleCollision(playerSprite, enemySprite) {
-		// The enemy is removed when it collides with the player, regardless of win/loss
-		// in Python, this is done by `enemies_manager.pop_first_enemy()`
-		// The check `enemy.get_x_pos() <= 50` in `collide` suggests it acts when enemy is close.
-		// Phaser's overlap is more immediate. Let's make sure an enemy only triggers once.
-
 		if (
 			enemySprite.active &&
 			enemySprite.x <= playerSprite.x + playerSprite.width / 2 &&
 			enemySprite.duelHandled !== true
 		) {
-			enemySprite.duelHandled = true; // Mark as handled to prevent multiple triggers
+			enemySprite.duelHandled = true;
 
 			const winner = GOD_MODE
 				? 'Player'
 				: this.duel(this.playerType, enemySprite.type);
 
 			if (winner === 'Enemy') {
-				this.sound.play('injury', { volume: SFX_VOLUME }); // Apply SFX_VOLUME
+				this.sound.play('injury', { volume: SFX_VOLUME });
 				this.game_over = true;
 				this.gameOverText.setVisible(true);
 				this.restartButton.setVisible(true);
 				this.setRPSButtonsVisibility(false);
-				this.pauseButton.setVisible(false); // Hide pause button on game over
-				this.pausedText.setVisible(false); // Hide "PAUSED" text if game over
+				this.pauseButton.setVisible(false);
+				this.pausedText.setVisible(false);
 				this.saveHighScore(this.current_score);
 			} else {
 				if (winner === 'Player') {
 					this.current_score += 1;
-					this.sound.play('coin', { volume: SFX_VOLUME }); // Apply SFX_VOLUME
+					this.sound.play('coin', { volume: SFX_VOLUME });
 				} else if (winner === 'Tie') {
-					this.sound.play('jump', { volume: SFX_VOLUME }); // Apply SFX_VOLUME
+					this.sound.play('jump', { volume: SFX_VOLUME });
 				}
-				enemySprite.destroy(); // Remove the enemy after duel
+				enemySprite.destroy();
 				this.updateScoreDisplay();
 			}
 		}
@@ -558,8 +526,6 @@ class MainScene extends Phaser.Scene {
 		if (playerChoice === enemyChoice) {
 			return 'Tie';
 		}
-
-		// Player Wins
 		if (
 			(playerChoice === 'R' && enemyChoice === 'S') ||
 			(playerChoice === 'P' && enemyChoice === 'R') ||
@@ -567,8 +533,6 @@ class MainScene extends Phaser.Scene {
 		) {
 			return 'Player';
 		}
-
-		// Enemy Wins
 		return 'Enemy';
 	}
 
@@ -583,7 +547,6 @@ class MainScene extends Phaser.Scene {
 	}
 
 	loadHighScore() {
-		// Using localStorage for web persistence
 		const storedScore = localStorage.getItem('rpsRunnerHighScore');
 		return storedScore ? parseInt(storedScore, 10) : 0;
 	}
@@ -595,34 +558,25 @@ class MainScene extends Phaser.Scene {
 				'rpsRunnerHighScore',
 				this.high_score.toString()
 			);
-			this.updateScoreDisplay(); // Update display immediately if new high score
+			this.updateScoreDisplay();
 		}
 	}
 
 	adjustSpawnRate(currentGroundSpeed) {
-		// Original speed ratio: original_ground_speed / currentGroundSpeed
-		// A higher currentGroundSpeed (faster game) means the speed_factor gets smaller.
 		const speed_factor = this.original_ground_speed / currentGroundSpeed;
-
-		// Ensure a minimum allowed spawn time to prevent enemies from spawning too fast.
-		const min_allowed_spawn_time = 500; // ms (0.5 seconds)
+		const min_allowed_spawn_time = 500;
 
 		this.min_wait_time = Math.max(
 			this.base_min_spawn_duration * speed_factor,
 			min_allowed_spawn_time
 		);
-
-		// Ensure max_wait_time is always greater than min_wait_time,
-		// maintaining a similar range as the original times.
 		const duration_range =
 			this.base_max_spawn_duration - this.base_min_spawn_duration;
 		this.max_wait_time = Math.max(
 			this.base_max_spawn_duration * speed_factor,
 			this.min_wait_time + duration_range * 0.5
-		); // Ensure range is maintained
+		);
 
-		// If the next spawn was planned based on old rates, adjust it
-		// to prevent extremely long or short waits after a speed change.
 		if (
 			this.time_until_next_spawn > this.max_wait_time ||
 			this.time_until_next_spawn < this.min_wait_time
@@ -637,10 +591,10 @@ class MainScene extends Phaser.Scene {
 
 // --- Phaser Game Configuration ---
 const config = {
-	type: Phaser.AUTO, // Use WebGL if available, otherwise Canvas
+	type: Phaser.AUTO,
 	width: WINDOW_WIDTH,
 	height: WINDOW_HEIGHT,
-	parent: 'game-container', // ID of the div where the game canvas will be inserted
+	parent: 'game-container',
 	physics: {
 		default: 'arcade',
 		arcade: {
@@ -650,9 +604,8 @@ const config = {
 	},
 	scene: [MainScene],
 	scale: {
-		// Scale configuration for responsiveness
-		mode: Phaser.Scale.FIT, // Game will scale to fit the parent container
-		autoCenter: Phaser.Scale.CENTER_BOTH, // Game will be centered horizontally and vertically
+		mode: Phaser.Scale.FIT,
+		autoCenter: Phaser.Scale.CENTER_BOTH,
 	},
 };
 
