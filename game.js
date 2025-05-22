@@ -6,7 +6,7 @@ const WINDOW_HEIGHT = 350; // Increased height to accommodate taller buttons and
 const GROUND_HEIGHT = 110; // This is relative to the bottom of the screen, so it will be WINDOW_HEIGHT - GROUND_HEIGHT_OFFSET in Phaser
 // Removed GROUND_Y_OFFSET and PLAYER_Y_OFFSET as they will be re-calculated based on new positioning
 const GAME_OBJECTS_BASE_Y_RATIO = 0.75; // Player and Enemy base at 75% of window height from top
-const GROUND_OFFSET_FROM_GAME_OBJECTS = 5; // How much ground is below game objects
+const GROUND_OFFSET_FROM_GAME_OBJECTS = 0; // Changed to 0 to align player/enemy with ground top
 
 const ENEMY_TYPES = ['R', 'P', 'S'];
 const SPEED_UPGRADE_FRAME = 1200; // In score
@@ -32,6 +32,7 @@ const BUTTON_SPACING = 10; // Space between each RPS button
 const BUTTON_PADDING_X = 20; // Horizontal padding within buttons
 const BUTTON_PADDING_Y = 15; // Vertical padding within buttons
 const BUTTON_BOTTOM_MARGIN = 15; // Space from bottom of screen to bottom of buttons
+const PAUSE_BUTTON_RIGHT_MARGIN = 20; // Margin from right edge of the screen for pause button
 
 // Button Text Content - Renamed back to R, P, S
 const BUTTON_TEXT = {
@@ -87,9 +88,14 @@ class MainScene extends Phaser.Scene {
 		this.scissorsButton = null;
 		this.startButton = null;
 
+		// Pause Button
+		this.pauseButton = null;
+		this.isPaused = false; // State to track if the game is paused
+		this.pausedText = null; // Text overlay for "PAUSED"
+
 		this.original_ground_speed = this.ground_speed; // For spawn rate adjustment
 
-		// Calculated Y position for player/enemy base (their feet)
+		// Calculated Y position for player/enemy base ( Gtheir feet)
 		this.gameObjectBaseY = WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO;
 	}
 
@@ -132,7 +138,7 @@ class MainScene extends Phaser.Scene {
 
 		// Player setup - positioned based on new GAME_OBJECTS_BASE_Y_RATIO
 		this.player = this.physics.add
-			.sprite(35, this.gameObjectBaseY, 'paper')
+			.sprite(35, this.gameObjectBaseY + 10, 'paper') // Added 10 pixels
 			.setScale(40 / 120) // Original scale factor
 			.setOrigin(0.5, 1); // Origin at the bottom center
 		this.player.setCollideWorldBounds(true);
@@ -153,12 +159,36 @@ class MainScene extends Phaser.Scene {
 					.padStart(4, '0')}`,
 				{
 					fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
-					fontSize: '20px',
+					fontSize: '20px', // Original font size
 					fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'), // Corrected color assignment for text
 					align: 'left', // Explicitly left aligned
 				}
 			)
 			.setOrigin(0, 0.5); // Set origin to top-left for X, centered vertically for Y
+
+		// Pause Button
+		this.pauseButton = this.add
+			.text(WINDOW_WIDTH - PAUSE_BUTTON_RIGHT_MARGIN, 20, '||', {
+				fontFamily: 'Courier Prime, Courier, monospace',
+				fontSize: '20px', // Matches score font size
+				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
+				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
+				// Removed padding for a tighter fit, matching score text's visual size
+			})
+			.setOrigin(1, 0.5) // Align right edge with its x, vertically centered
+			.setInteractive()
+			.on('pointerdown', this.togglePause, this)
+			.setVisible(false); // Hide initially
+
+		// "PAUSED" text overlay
+		this.pausedText = this.add
+			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 'PAUSED', {
+				fontFamily: 'Courier Prime, Courier, monospace',
+				fontSize: '50px',
+				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
+			})
+			.setOrigin(0.5)
+			.setVisible(false);
 
 		// Game Over Text
 		this.gameOverText = this.add
@@ -263,12 +293,9 @@ class MainScene extends Phaser.Scene {
 	}
 
 	update(time, delta) {
-		if (!this.gameStarted) {
-			return; // Wait for start button to be pressed
-		}
-
-		if (this.game_over) {
-			return; // Stop updating game logic if game over
+		// Game logic only runs if gameStarted, not game_over, AND not paused
+		if (!this.gameStarted || this.game_over || this.isPaused) {
+			return;
 		}
 
 		// --- Ground Scrolling ---
@@ -319,6 +346,7 @@ class MainScene extends Phaser.Scene {
 	startGame() {
 		this.gameStarted = true;
 		this.game_over = false;
+		this.isPaused = false; // Ensure game starts unpaused
 		this.current_score = 0;
 		this.ground_speed = 2; // Reset speed
 		this.time_since_last_spawn = 0;
@@ -328,10 +356,34 @@ class MainScene extends Phaser.Scene {
 		this.gameOverText.setVisible(false);
 		this.restartButton.setVisible(false);
 		this.startButton.setVisible(false); // Make sure start button is hidden after game starts
+		this.pauseButton.setVisible(true); // Show pause button
+		this.pauseButton.setText('||'); // Ensure pause icon
+		if (this.pausedText) {
+			this.pausedText.setVisible(false); // Hide "PAUSED" text
+		}
 		this.randomizePlayerType();
 		this.updateScoreDisplay();
 		this.adjustSpawnRate(this.ground_speed); // Reset spawn rate as well
 		this.current_frame = 0; // Reset speed upgrade tracker
+
+		// Ensure physics are resumed if starting from a paused/game over state
+		this.physics.world.resume();
+	}
+
+	togglePause() {
+		this.isPaused = !this.isPaused;
+
+		if (this.isPaused) {
+			// Scene's update loop is controlled by the 'if (this.isPaused)' check in update()
+			this.physics.world.pause(); // Pauses all physics bodies
+			this.pauseButton.setText('\u25B6'); // Change icon to UNICODE play symbol
+			this.pausedText.setVisible(true); // Show "PAUSED" text
+		} else {
+			// Scene's update loop will resume because 'this.isPaused' is now false
+			this.physics.world.resume(); // Resumes all physics bodies
+			this.pauseButton.setText('||'); // Change icon back to pause
+			this.pausedText.setVisible(false); // Hide "PAUSED" text
+		}
 	}
 
 	randomizePlayerType() {
@@ -366,7 +418,8 @@ class MainScene extends Phaser.Scene {
 			.setOrigin(0.5) // Origin for positioning
 			.setInteractive()
 			.on('pointerdown', () => {
-				if (!this.game_over) {
+				if (!this.game_over && !this.isPaused) {
+					// Only allow type change if not game over and not paused
 					this.playerType = buttonType; // Use the actual type (R,P,S) for game logic
 					this.player.setTexture(assetKey); // Set player texture
 				}
@@ -385,7 +438,7 @@ class MainScene extends Phaser.Scene {
 		const enemyAssetKey = this.getAssetKeyFromType(enemyType);
 		// Enemy Y position - positioned based on new GAME_OBJECTS_BASE_Y_RATIO
 		const enemy = this.enemies
-			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY, enemyAssetKey)
+			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY + 10, enemyAssetKey) // Added 10 pixels
 			.setScale(40 / 120) // Scale to match player
 			.setOrigin(0.5, 1); // Origin at the bottom center
 		enemy.type = enemyType; // Attach type to the sprite for duel logic
@@ -430,6 +483,8 @@ class MainScene extends Phaser.Scene {
 				this.gameOverText.setVisible(true);
 				this.restartButton.setVisible(true);
 				this.setRPSButtonsVisibility(false);
+				this.pauseButton.setVisible(false); // Hide pause button on game over
+				this.pausedText.setVisible(false); // Hide "PAUSED" text if game over
 				this.saveHighScore(this.current_score);
 			} else {
 				if (winner === 'Player') {
