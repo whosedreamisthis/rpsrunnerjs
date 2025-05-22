@@ -34,7 +34,7 @@
 				display: block;
 			}
 
-			/* The orientation message from before (optional, but good practice) */
+			/* The orientation message from before */
 			#orientation-message {
 				display: none;
 				text-align: center;
@@ -44,6 +44,7 @@
 				padding: 20px;
 			}
 
+			/* Ensure game is hidden in portrait and message is shown */
 			@media (orientation: portrait) {
 				#game-container {
 					display: none;
@@ -53,7 +54,9 @@
 				}
 			}
 
+			/* Ensure game is always visible on wider screens (desktops) regardless of 'orientation' */
 			@media (min-width: 769px) {
+				/* Adjust this breakpoint if needed */
 				#game-container {
 					display: flex !important; /* Force display on desktop */
 				}
@@ -70,7 +73,22 @@
 			<br /><br />
 			(Or widen your browser window on desktop)
 		</div>
+
 		<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 		<script src="game.js"></script>
+
+		<script>
+			window.addEventListener('orientationchange', function () {
+				// Add a small delay to ensure the browser has fully registered the new orientation
+				// and the screen has settled before reloading.
+				setTimeout(function () {
+					// Check if the current orientation is landscape.
+					// This prevents reloading if the user rotates back to portrait immediately.
+					if (window.matchMedia('(orientation: landscape)').matches) {
+						window.location.reload(); // Reload the page
+					}
+				}, 500); // 500 milliseconds delay
+			});
+		</script>
 	</body>
 </html>
