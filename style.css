@@ -1,0 +1,19 @@
+body {
+	margin: 0;
+	padding: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	background-color: #2a2c2e; /* Dark background to match Pygame's dark_gray feel */
+	overflow: hidden; /* Prevent scrollbars */
+}
+
+#game-container {
+	/* Phaser will create a canvas inside this div */
+}
+
+canvas {
+	display: block; /* Remove extra space below canvas */
+	border: 2px solid #5a5e60; /* Optional: border around the game */
+}
