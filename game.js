@@ -217,10 +217,10 @@ class MainScene extends Phaser.Scene {
 			.on('pointerdown', this.togglePause, this)
 			.setVisible(false); // Hide initially
 
-		// "PAUSED" text overlay
+		// "PAUSED" text overlay - Moved 25 pixels higher
 		this.pausedText = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 45, 'PAUSED', {
-				// Adjusted Y-coordinate here
+			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'PAUSED', {
+				// Changed Y from -45 to -70
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '50px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
@@ -241,7 +241,7 @@ class MainScene extends Phaser.Scene {
 		// Restart Button
 		this.restartButton = this.add
 			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 + 20, 'Restart', {
-				fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
+				fontFamily: 'Courier Prime', // Changed to Courier font
 				fontSize: '30px',
 				fill: '#' + WHITE.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
@@ -307,14 +307,17 @@ class MainScene extends Phaser.Scene {
 		);
 		this.setRPSButtonsVisibility(false); // Hide initially
 
-		// Start Button
+		// Start Button - Adjusted to overlap the P button and match its style
 		this.startButton = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 'START GAME', {
-				fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
-				fontSize: '40px',
-				fill: '#' + WHITE.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + GREEN.toString(16).padStart(6, '0'),
-				padding: { x: 20, y: 10 },
+			.text(paperX, buttonY, 'START GAME', {
+				// X-position changed to paperX
+				fontFamily: 'Courier Prime', // Matched RPS button font
+				fontSize: '32px', // Matched RPS button font size
+				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'), // Changed fill to PAPER_COLOR
+				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'), // Changed background to OFFWHITE
+				padding: { x: 10, y: BUTTON_PADDING_Y }, // Adjusted x padding for centering
+				fixedWidth: singleButtonCalculatedWidth, // Matched RPS button width
+				align: 'center', // Center text within the fixed width
 			})
 			.setOrigin(0.5)
 			.setInteractive()
