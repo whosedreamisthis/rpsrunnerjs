@@ -647,6 +647,20 @@ const config = {
 		},
 	},
 	scene: [MainScene],
+	scale: {
+		// Add this scale configuration
+		mode: Phaser.Scale.FIT, // Game will scale to fit the parent container
+		autoCenter: Phaser.Scale.CENTER_BOTH, // Game will be centered horizontally and vertically
+		// You can uncomment and adjust these if you need more control over min/max scaling
+		// min: {
+		//     width: 320,
+		//     height: 180
+		// },
+		// max: {
+		//     width: 800,
+		//     height: 450
+		// }
+	},
 };
 
 const game = new Phaser.Game(config);
