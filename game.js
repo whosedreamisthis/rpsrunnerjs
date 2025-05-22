@@ -22,6 +22,13 @@ const ROCK_COLOR = 0x59c3c3; // (89,195,195)
 const PAPER_COLOR = 0x774c60; // (119,76,96)
 const SCISSORS_COLOR = 0x84a98c; // (132,169,140)
 
+// New constants for ground appearance
+const VISIBLE_GROUND_LINE_HEIGHT = 25; // Estimated height of the visible ground line in ground.png
+const GROUND_FILL_COLOR = 0x313638; // Using DARK_GRAY for the fill below the line
+
+// Vertical adjustment for ground and hands
+const VERTICAL_MOVE_UP_AMOUNT = 25;
+
 // Original spawn times in SECONDS
 const ORIGINAL_MIN_SPAWN_DURATION = 2.0; // seconds
 const ORIGINAL_MAX_SPAWN_DURATION = 4.0; // seconds
@@ -31,7 +38,7 @@ const BUTTON_HORIZONTAL_PADDING = 20; // Margin from left/right edges of the scr
 const BUTTON_SPACING = 10; // Space between each RPS button
 const BUTTON_PADDING_X = 20; // Horizontal padding within buttons
 const BUTTON_PADDING_Y = 15; // Vertical padding within buttons
-const BUTTON_BOTTOM_MARGIN = 15; // Space from bottom of screen to bottom of buttons
+// BUTTON_BOTTOM_MARGIN is no longer a fixed constant here, its value is derived
 const PAUSE_BUTTON_RIGHT_MARGIN = 20; // Margin from right edge of the screen for pause button
 
 // Button Text Content - Renamed back to R, P, S
@@ -95,8 +102,9 @@ class MainScene extends Phaser.Scene {
 
 		this.original_ground_speed = this.ground_speed; // For spawn rate adjustment
 
-		// Calculated Y position for player/enemy base ( Gtheir feet)
-		this.gameObjectBaseY = WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO;
+		// Calculated Y position for player/enemy base (their feet)
+		this.gameObjectBaseY =
+			WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO - VERTICAL_MOVE_UP_AMOUNT;
 	}
 
 	preload() {
@@ -117,19 +125,48 @@ class MainScene extends Phaser.Scene {
 		// Changed background color to OFFWHITE
 		this.cameras.main.setBackgroundColor(OFFWHITE);
 
-		// Ground setup (using two sprites for infinite scroll)
-		// Ground is placed just below the game objects
-		const groundY = this.gameObjectBaseY + GROUND_OFFSET_FROM_GAME_OBJECTS;
+		// Ground setup (using two tile sprites for infinite scrolling of the ground line)
+		const groundY = this.gameObjectBaseY + GROUND_OFFSET_FROM_GAME_OBJECTS; // This is the top of the visible ground line
+
 		this.ground1 = this.add
-			.tileSprite(0, groundY, WINDOW_WIDTH, GROUND_HEIGHT, 'ground')
+			.tileSprite(
+				0,
+				groundY,
+				WINDOW_WIDTH,
+				VISIBLE_GROUND_LINE_HEIGHT,
+				'ground'
+			)
 			.setOrigin(0, 0);
 		this.ground2 = this.add
 			.tileSprite(
 				WINDOW_WIDTH,
 				groundY,
 				WINDOW_WIDTH,
-				GROUND_HEIGHT,
+				VISIBLE_GROUND_LINE_HEIGHT,
 				'ground'
+			)
+			.setOrigin(0, 0);
+
+		// Add rectangles to fill the space below the ground line
+		const groundFillY = groundY + VISIBLE_GROUND_LINE_HEIGHT;
+		const groundFillHeight = WINDOW_HEIGHT - groundFillY;
+
+		this.groundFill1 = this.add
+			.rectangle(
+				0,
+				groundFillY,
+				WINDOW_WIDTH,
+				groundFillHeight,
+				GROUND_FILL_COLOR
+			)
+			.setOrigin(0, 0);
+		this.groundFill2 = this.add
+			.rectangle(
+				WINDOW_WIDTH,
+				groundFillY,
+				WINDOW_WIDTH,
+				groundFillHeight,
+				GROUND_FILL_COLOR
 			)
 			.setOrigin(0, 0);
 
@@ -182,7 +219,8 @@ class MainScene extends Phaser.Scene {
 
 		// "PAUSED" text overlay
 		this.pausedText = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 'PAUSED', {
+			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 45, 'PAUSED', {
+				// Adjusted Y-coordinate here
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '50px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
@@ -221,12 +259,17 @@ class MainScene extends Phaser.Scene {
 			(totalButtonAreaWidth - 2 * BUTTON_SPACING) / 3;
 
 		// Calculate button height based on font size and padding
-		const buttonTextHeight = 24; // Assuming font size 24px
-		const singleButtonHeight = buttonTextHeight + 2 * BUTTON_PADDING_Y; // Total height
+		const buttonTextHeight = 32; // This matches the font size set in createRPSButton
+		const singleButtonHeight = buttonTextHeight + 2 * BUTTON_PADDING_Y; // Total height of the button graphic
 
-		// Calculate button Y position to be at the bottom with margin
-		const buttonY =
-			WINDOW_HEIGHT - BUTTON_BOTTOM_MARGIN - singleButtonHeight / 2;
+		// Calculate the visual bottom edge of the ground image
+		const visualGroundBottomY =
+			WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO -
+			VERTICAL_MOVE_UP_AMOUNT +
+			VISIBLE_GROUND_LINE_HEIGHT;
+
+		// Calculate button Y position to center them between the bottom of the ground and the bottom of the window
+		const buttonY = (visualGroundBottomY + WINDOW_HEIGHT) / 2;
 
 		const rockX =
 			BUTTON_HORIZONTAL_PADDING + singleButtonCalculatedWidth / 2;
@@ -234,6 +277,7 @@ class MainScene extends Phaser.Scene {
 		const scissorsX = paperX + singleButtonCalculatedWidth + BUTTON_SPACING;
 
 		// Pass full text and calculated width to createRPSButton
+		// Button background is now OFFWHITE, and text color uses the specific RPS color
 		this.rockButton = this.createRPSButton(
 			rockX,
 			buttonY,
@@ -301,12 +345,16 @@ class MainScene extends Phaser.Scene {
 		// --- Ground Scrolling ---
 		this.ground1.x -= this.ground_speed;
 		this.ground2.x -= this.ground_speed;
+		this.groundFill1.x -= this.ground_speed; // Also scroll the ground fill
+		this.groundFill2.x -= this.ground_speed; // Also scroll the ground fill
 
 		if (this.ground1.x + this.ground1.width < 0) {
 			this.ground1.x = this.ground2.x + this.ground2.width;
+			this.groundFill1.x = this.groundFill2.x + this.groundFill2.width; // Also reset ground fill
 		}
 		if (this.ground2.x + this.ground2.width < 0) {
 			this.ground2.x = this.ground1.x + this.ground1.width;
+			this.groundFill2.x = this.groundFill1.x + this.groundFill1.width; // Also reset ground fill
 		}
 
 		// --- Enemy Spawning ---
@@ -381,7 +429,6 @@ class MainScene extends Phaser.Scene {
 		} else {
 			// Scene's update loop will resume because 'this.isPaused' is now false
 			this.physics.world.resume(); // Resumes all physics bodies
-			this.pauseButton.setText('||'); // Change icon back to pause
 			this.pausedText.setVisible(false); // Hide "PAUSED" text
 		}
 	}
@@ -398,21 +445,22 @@ class MainScene extends Phaser.Scene {
 		buttonType,
 		buttonText,
 		assetKey,
-		color,
+		buttonColor,
 		buttonWidth
 	) {
+		// Renamed 'color' to 'buttonColor'
 		// Convert integer hex color to CSS hex string
-		const bgColor = '#' + color.toString(16).padStart(6, '0');
-		const textColor = '#' + BLACK.toString(16).padStart(6, '0');
+		const bgColor = '#' + OFFWHITE.toString(16).padStart(6, '0'); // Background is OFFWHITE
+		const textColor = '#' + buttonColor.toString(16).padStart(6, '0'); // Text color is the distinct RPS color
 
 		const button = this.add
 			.text(x, y, buttonText, {
 				fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
-				fontSize: '24px',
+				fontSize: '32px', // Increased font size here
 				fill: textColor,
 				backgroundColor: bgColor,
 				padding: { x: BUTTON_PADDING_X, y: BUTTON_PADDING_Y }, // Use new padding constants
-				fixedWidth: buttonWidth, // Set fixed width
+				fixedWidth: buttonWidth,
 				align: 'center', // Center text within the fixed width
 			})
 			.setOrigin(0.5) // Origin for positioning
