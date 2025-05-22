@@ -220,7 +220,6 @@ class MainScene extends Phaser.Scene {
 		// "PAUSED" text overlay - Moved 25 pixels higher
 		this.pausedText = this.add
 			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'PAUSED', {
-				// Changed Y from -45 to -70
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '50px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
@@ -228,28 +227,14 @@ class MainScene extends Phaser.Scene {
 			.setOrigin(0.5)
 			.setVisible(false);
 
-		// Game Over Text
+		// Game Over Text - Moved to overlap PAUSED text
 		this.gameOverText = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 50, 'GAME OVER!', {
+			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'GAME OVER!', {
 				fontFamily: 'Courier Prime, Courier, monospace', // Changed to Courier font
 				fontSize: '50px',
 				fill: '#' + ROCK_COLOR.toString(16).padStart(6, '0'), // Corrected color assignment for text
 			})
 			.setOrigin(0.5)
-			.setVisible(false);
-
-		// Restart Button
-		this.restartButton = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 + 20, 'Restart', {
-				fontFamily: 'Courier Prime', // Changed to Courier font
-				fontSize: '30px',
-				fill: '#' + WHITE.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
-				padding: { x: 10, y: 5 },
-			})
-			.setOrigin(0.5)
-			.setInteractive()
-			.on('pointerdown', () => this.startGame())
 			.setVisible(false);
 
 		// --- RPS Buttons Setup (Expanded to screen width and taller) ---
@@ -322,6 +307,23 @@ class MainScene extends Phaser.Scene {
 			.setOrigin(0.5)
 			.setInteractive()
 			.on('pointerdown', () => this.startGame());
+
+		// Restart Button - Moved to overlap the P button, same style as Start Game button
+		this.restartButton = this.add
+			.text(paperX, buttonY, 'Restart', {
+				// X-position changed to paperX
+				fontFamily: 'Courier Prime', // Matched Start Game button font
+				fontSize: '32px', // Matched Start Game button font size
+				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'), // Matched Start Game button fill color
+				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'), // Matched Start Game button background color
+				padding: { x: 10, y: BUTTON_PADDING_Y }, // Matched Start Game button padding
+				fixedWidth: singleButtonCalculatedWidth, // Matched Start Game button width
+				align: 'center', // Matched Start Game button align
+			})
+			.setOrigin(0.5)
+			.setInteractive()
+			.on('pointerdown', () => this.startGame())
+			.setVisible(false); // Hide initially
 
 		// Set initial spawn time
 		this.time_until_next_spawn = Phaser.Math.Between(
