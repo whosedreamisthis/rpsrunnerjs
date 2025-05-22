@@ -11,7 +11,7 @@ const INITIAL_SPEED_UP_SCORE = 3; // First speed up happens when score hits 3
 const SUBSEQUENT_SPEED_UP_INTERVAL = 8; // Speed up every 10 points after that (e.g., 13, 23, 33...)
 const SPEED_INCREMENT_AMOUNT = 1.5; // NEW: How much speed increases per threshold (e.g., 1.0, 1.5, 2.0)
 
-const GOD_MODE = true;
+const GOD_MODE = false;
 
 // Colors
 const WHITE = 0xffffff;
