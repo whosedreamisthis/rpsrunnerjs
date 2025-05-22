@@ -4,11 +4,76 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>RPS Runner</title>
-		<link rel="stylesheet" href="style.css" />
-		<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+		<style>
+			/* Basic styling for the entire page */
+			body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden; /* Prevent scrolling */
+				background-color: #f0f0f0; /* Matches OFFWHITE background from your game */
+				display: flex; /* Use flexbox to center content */
+				justify-content: center; /* Center horizontally */
+				align-items: center; /* Center vertically */
+				min-height: 100vh; /* Ensure body takes full viewport height */
+				color: #313638; /* Default text color for messages, matching DARK_GRAY */
+				font-family: 'Courier Prime', Courier, monospace; /* Matching game font */
+			}
+
+			/* Styles for your game container (where Phaser renders) */
+			#game-container {
+				width: 700px; /* Match your WINDOW_WIDTH */
+				height: 350px; /* Match your WINDOW_HEIGHT */
+				display: block; /* Show by default */
+				/* Optional: Add a border or shadow for visual separation */
+				/* border: 1px solid #ccc; */
+				/* box-shadow: 0 0 10px rgba(0,0,0,0.1); */
+			}
+
+			/* Styles for the orientation message */
+			#orientation-message {
+				display: none; /* Hidden by default */
+				text-align: center;
+				font-size: 24px;
+				padding: 20px;
+				max-width: 80%; /* Prevent message from being too wide */
+			}
+
+			/* --- Media Query for Portrait Orientation --- */
+			/* This applies when the device is in portrait mode */
+			@media (orientation: portrait) {
+				#game-container {
+					display: none; /* Hide the game canvas */
+				}
+				#orientation-message {
+					display: block; /* Show the orientation message */
+				}
+			}
+
+			/* --- Optional: Media Query for Desktop/Wider Screens --- */
+			/* This ensures the game is always visible on larger screens (like desktops)
+           even if the browser window is technically "portrait" shaped, because
+           desktop users don't "rotate" their monitors in the same way. */
+			@media (min-width: 769px) {
+				/* Adjust this breakpoint if needed */
+				#game-container {
+					display: block !important; /* Force game display */
+				}
+				#orientation-message {
+					display: none !important; /* Force message hidden */
+				}
+			}
+		</style>
 	</head>
 	<body>
 		<div id="game-container"></div>
+
+		<div id="orientation-message">
+			Please rotate your device to **landscape mode** to play.
+			<br /><br />
+			(If on a desktop, please widen your browser window.)
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 		<script src="game.js"></script>
 	</body>
 </html>
