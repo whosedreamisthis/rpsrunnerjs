@@ -64,6 +64,8 @@ const ASSET_URLS = {
 		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/sounds/jump.wav',
 };
 
+const SFX_VOLUME = 0.5; // NEW: Adjust this value (0.0 to 1.0) for desired SFX loudness
+
 // --- Game Scene ---
 class MainScene extends Phaser.Scene {
 	constructor() {
@@ -531,7 +533,7 @@ class MainScene extends Phaser.Scene {
 				: this.duel(this.playerType, enemySprite.type);
 
 			if (winner === 'Enemy') {
-				this.sound.play('injury');
+				this.sound.play('injury', { volume: SFX_VOLUME }); // Apply SFX_VOLUME
 				this.game_over = true;
 				this.gameOverText.setVisible(true);
 				this.restartButton.setVisible(true);
@@ -542,9 +544,9 @@ class MainScene extends Phaser.Scene {
 			} else {
 				if (winner === 'Player') {
 					this.current_score += 1;
-					this.sound.play('coin');
+					this.sound.play('coin', { volume: SFX_VOLUME }); // Apply SFX_VOLUME
 				} else if (winner === 'Tie') {
-					this.sound.play('jump');
+					this.sound.play('jump', { volume: SFX_VOLUME }); // Apply SFX_VOLUME
 				}
 				enemySprite.destroy(); // Remove the enemy after duel
 				this.updateScoreDisplay();
@@ -642,24 +644,15 @@ const config = {
 	physics: {
 		default: 'arcade',
 		arcade: {
-			gravity: { y: 0 }, // No vertical gravity needed for this runner
-			debug: false, // Set to true to see hitboxes
+			gravity: { y: 0 },
+			debug: false,
 		},
 	},
 	scene: [MainScene],
 	scale: {
-		// Add this scale configuration
+		// Scale configuration for responsiveness
 		mode: Phaser.Scale.FIT, // Game will scale to fit the parent container
 		autoCenter: Phaser.Scale.CENTER_BOTH, // Game will be centered horizontally and vertically
-		// You can uncomment and adjust these if you need more control over min/max scaling
-		// min: {
-		//     width: 320,
-		//     height: 180
-		// },
-		// max: {
-		//     width: 800,
-		//     height: 450
-		// }
 	},
 };
 
