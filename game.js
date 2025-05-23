@@ -442,7 +442,7 @@ class MainScene extends Phaser.Scene {
 		if (this.pausedText) {
 			this.pausedText.setVisible(false);
 		}
-		this.randomizePlayerType();
+		this.randomizePlayerType(); // This will now also apply player animation
 		this.updateScoreDisplay();
 		this.adjustSpawnRate(this.ground_speed);
 		this.next_speed_upgrade_score_threshold = INITIAL_SPEED_UP_SCORE;
@@ -470,9 +470,64 @@ class MainScene extends Phaser.Scene {
 		this.sfxButton.setText(this.sfxEnabled ? '🔊' : '🔇'); // Set text to volume ON or OFF icon
 	}
 
+	// --- NEW METHOD: Applies animation to the player based on current type ---
+	applyPlayerAnimation() {
+		// Stop any currently running tweens on the player to prevent multiple animations
+		this.tweens.killTweensOf(this.player);
+
+		// Reset player's properties to their default state before applying new animation
+		this.player.rotation = 0; // Reset rotation
+		this.player.setScale(40 / 120); // Reset to base scale
+		// Reset Y position if it was affected by bob (to ensure consistent start for new anim)
+		this.player.y = this.gameObjectBaseY + 10;
+
+		// Apply animation based on current player type
+		switch (this.playerType) {
+			case 'R': // Rock: Bob up/down
+				this.tweens.add({
+					targets: this.player,
+					y: this.player.y - ROCK_BOB_AMOUNT, // Move player sprite up
+					duration: ROCK_BOB_DURATION,
+					ease: 'Sine.easeInOut',
+					yoyo: true,
+					repeat: -1,
+				});
+				break;
+			case 'P': // Paper: Rotate back and forth
+				this.tweens.add({
+					targets: this.player,
+					rotation: { from: 0, to: PAPER_ROTATE_AMOUNT },
+					duration: PAPER_ROTATE_DURATION,
+					ease: 'Sine.easeInOut',
+					yoyo: true,
+					repeat: -1,
+				});
+				break;
+			case 'S': // Scissors: Scale up/down
+				const initialScale = 40 / 120;
+				this.tweens.add({
+					targets: this.player,
+					scaleX: initialScale + SCISSORS_SCALE_AMOUNT,
+					scaleY: initialScale + SCISSORS_SCALE_AMOUNT,
+					duration: SCISSORS_SCALE_DURATION,
+					ease: 'Sine.easeInOut',
+					yoyo: true,
+					repeat: -1,
+				});
+				break;
+			default:
+				// No animation for unknown type, ensure properties are reset
+				this.player.rotation = 0;
+				this.player.setScale(40 / 120);
+				this.player.y = this.gameObjectBaseY + 10;
+				break;
+		}
+	}
+
 	randomizePlayerType() {
 		this.playerType = Phaser.Math.RND.pick(ENEMY_TYPES);
 		this.player.setTexture(this.getAssetKeyFromType(this.playerType));
+		this.applyPlayerAnimation(); // Call the new animation function
 	}
 
 	createRPSButton(
@@ -503,6 +558,7 @@ class MainScene extends Phaser.Scene {
 				if (!this.game_over && !this.isPaused) {
 					this.playerType = buttonType;
 					this.player.setTexture(assetKey);
+					this.applyPlayerAnimation(); // Call the new animation function
 				}
 			});
 		return button;
@@ -531,17 +587,17 @@ class MainScene extends Phaser.Scene {
 			case 'R': // Rock: Bob up/down
 				this.tweens.add({
 					targets: enemy,
-					y: enemy.y - ROCK_BOB_AMOUNT, // Move up by ROCK_BOB_AMOUNT pixels
+					y: enemy.y - ROCK_BOB_AMOUNT,
 					duration: ROCK_BOB_DURATION,
-					ease: 'Sine.easeInOut', // Smooth start and end
-					yoyo: true, // Go back and forth
-					repeat: -1, // Loop indefinitely
+					ease: 'Sine.easeInOut',
+					yoyo: true,
+					repeat: -1,
 				});
 				break;
 			case 'P': // Paper: Rotate back and forth
 				this.tweens.add({
 					targets: enemy,
-					rotation: { from: 0, to: PAPER_ROTATE_AMOUNT }, // Rotate from 0 to PAPER_ROTATE_AMOUNT (radians)
+					rotation: { from: 0, to: PAPER_ROTATE_AMOUNT },
 					duration: PAPER_ROTATE_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
@@ -549,15 +605,15 @@ class MainScene extends Phaser.Scene {
 				});
 				break;
 			case 'S': // Scissors: Scale up/down
-				// We need the initial scale to calculate the target scale
+				// Store initial scale for relative scaling
 				const initialScale = 40 / 120;
 				this.tweens.add({
 					targets: enemy,
-					scaleX: initialScale + SCISSORS_SCALE_AMOUNT, // Scale up
-					scaleY: initialScale + SCISSORS_SCALE_AMOUNT, // Scale up
+					scaleX: initialScale + SCISSORS_SCALE_AMOUNT,
+					scaleY: initialScale + SCISSORS_SCALE_AMOUNT,
 					duration: SCISSORS_SCALE_DURATION,
 					ease: 'Sine.easeInOut',
-					yoyo: true, // Scale back down
+					yoyo: true,
 					repeat: -1,
 				});
 				break;
