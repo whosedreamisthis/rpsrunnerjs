@@ -65,8 +65,9 @@ const SETTINGS_PANEL_TEXT_COLOR = 0xffffff; // White
 const SETTINGS_PANEL_BUTTON_PADDING_X = 15;
 const SETTINGS_PANEL_BUTTON_PADDING_Y = 10;
 const SETTINGS_PANEL_BUTTON_SPACING_Y = 15; // Vertical spacing between buttons inside panel
+// In constants section:
 const SETTINGS_PANEL_BUTTON_FONT_SIZE = '20px'; // Font size for buttons in panel
-
+const SETTINGS_PANEL_BUTTON_FIXED_WIDTH_RATIO = 0.9; // NEW: Adjusted from 0.8 to give more room for text
 // Button Text Content
 const BUTTON_TEXT = {
 	R: 'R',
@@ -235,13 +236,15 @@ class MainScene extends Phaser.Scene {
 
 		// --- Settings Button (rightmost) ---
 		this.settingsButton = this.add
-			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙️', {
+			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙', {
+				// <--- Changed to '⚙'
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
 				padding: { left: 8, right: 8, top: 7, bottom: 5 },
 			})
+			// ... rest of the code
 			.setOrigin(1, 0.5)
 			.setInteractive()
 			.on('pointerdown', this.toggleSettingsPanel, this)
@@ -343,7 +346,7 @@ class MainScene extends Phaser.Scene {
 			.text(
 				0,
 				0, // Temporary Y, will be adjusted
-				'Reset High Score',
+				'Reset High S',
 				{
 					fontFamily: 'Courier Prime, Courier, monospace',
 					fontSize: SETTINGS_PANEL_BUTTON_FONT_SIZE,
@@ -361,7 +364,9 @@ class MainScene extends Phaser.Scene {
 						y: SETTINGS_PANEL_BUTTON_PADDING_Y,
 					},
 					align: 'center',
-					fixedWidth: SETTINGS_PANEL_WIDTH * 0.8,
+					fixedWidth:
+						SETTINGS_PANEL_WIDTH *
+						SETTINGS_PANEL_BUTTON_FIXED_WIDTH_RATIO,
 				}
 			)
 			.setOrigin(0.5)
