@@ -54,6 +54,9 @@ const PAPER_ROTATE_DURATION = 800; // ms
 const SCISSORS_SCALE_AMOUNT = 0.02; // Relative scale increase (e.g., if scale 0.33, goes to 0.35)
 const SCISSORS_SCALE_DURATION = 700; // ms
 
+// NEW: Enemy Spawning Rules
+const MAX_CONSECUTIVE_ENEMIES = 3; // Max number of times the same enemy type can appear in a row
+
 // Button Text Content
 const BUTTON_TEXT = {
 	R: 'R',
@@ -100,6 +103,10 @@ class MainScene extends Phaser.Scene {
 		this.base_max_spawn_duration = ORIGINAL_MAX_SPAWN_DURATION * 1000;
 		this.min_wait_time = this.base_min_spawn_duration;
 		this.max_wait_time = this.base_max_spawn_duration;
+
+		// NEW: Properties for limiting consecutive enemies
+		this.lastEnemyType = null;
+		this.consecutiveEnemyCount = 0;
 
 		// UI Elements
 		this.scoreText = null;
@@ -428,7 +435,12 @@ class MainScene extends Phaser.Scene {
 		this.ground_speed = 2; // Reset initial speed
 		this.time_since_last_spawn = 0;
 		this.enemies.clear(true, true);
-		this.spawnEnemy();
+
+		// NEW: Reset consecutive enemy tracking on game start
+		this.lastEnemyType = null;
+		this.consecutiveEnemyCount = 0;
+
+		this.spawnEnemy(); // First enemy will be spawned with no prior restrictions
 		this.setRPSButtonsVisibility(true);
 		this.gameOverText.setVisible(false);
 		this.restartButton.setVisible(false);
@@ -571,19 +583,46 @@ class MainScene extends Phaser.Scene {
 	}
 
 	spawnEnemy() {
-		const enemyType = Phaser.Math.RND.pick(ENEMY_TYPES);
-		const enemyAssetKey = this.getAssetKeyFromType(enemyType);
+		let enemyTypeToSpawn;
+		let availableTypes = [...ENEMY_TYPES]; // Create a mutable copy of all types
+
+		// NEW: Logic to limit consecutive enemy types
+		if (
+			this.lastEnemyType !== null &&
+			this.consecutiveEnemyCount >= MAX_CONSECUTIVE_ENEMIES
+		) {
+			// If the limit is reached, filter out the last enemy type
+			availableTypes = availableTypes.filter(
+				(type) => type !== this.lastEnemyType
+			);
+			enemyTypeToSpawn = Phaser.Math.RND.pick(availableTypes);
+		} else {
+			// Otherwise, pick from all available types (or the filtered list if no previous enemy)
+			enemyTypeToSpawn = Phaser.Math.RND.pick(availableTypes);
+		}
+
+		// Update consecutive count and last type based on the chosen enemy
+		if (enemyTypeToSpawn === this.lastEnemyType) {
+			this.consecutiveEnemyCount++;
+		} else {
+			this.consecutiveEnemyCount = 1; // Reset count for a new type
+		}
+		this.lastEnemyType = enemyTypeToSpawn; // Store the current type as the last one
+
+		const enemyAssetKey = this.getAssetKeyFromType(enemyTypeToSpawn);
 		const enemy = this.enemies
 			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY + 10, enemyAssetKey)
 			.setScale(40 / 120) // Initial scale
 			.setOrigin(0.5, 1);
-		enemy.type = enemyType;
+		enemy.type = enemyTypeToSpawn; // Assign the determined type to the enemy object
 		enemy.body.setAllowGravity(false);
 		enemy.body.setSize(enemy.width * 0.8, enemy.height * 0.8);
 		enemy.body.setOffset(enemy.width * 0.1, enemy.height * 0.2);
 
 		// Add animations based on enemy type
-		switch (enemyType) {
+		switch (
+			enemyTypeToSpawn // Use enemyTypeToSpawn here
+		) {
 			case 'R': // Rock: Bob up/down
 				this.tweens.add({
 					targets: enemy,
