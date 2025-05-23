@@ -40,7 +40,9 @@ const BUTTON_HORIZONTAL_PADDING = 20;
 const BUTTON_SPACING = 10;
 const BUTTON_PADDING_X = 20;
 const BUTTON_PADDING_Y = 15;
-const PAUSE_BUTTON_RIGHT_MARGIN = 20;
+const UI_TOP_RIGHT_MARGIN = 20; // Margin from the right edge for the rightmost UI element
+const UI_BUTTON_TOP_Y = 20; // Y position for top-right UI buttons
+const UI_BUTTON_SPACING = 10; // Spacing between top-right UI buttons (like Pause and SFX)
 
 // Button Text Content
 const BUTTON_TEXT = {
@@ -102,6 +104,10 @@ class MainScene extends Phaser.Scene {
 		this.pauseButton = null;
 		this.isPaused = false;
 		this.pausedText = null;
+
+		// SFX Button
+		this.sfxButton = null;
+		this.sfxEnabled = true; // SFX starts ON
 
 		this.original_ground_speed = this.ground_speed;
 
@@ -195,17 +201,40 @@ class MainScene extends Phaser.Scene {
 			)
 			.setOrigin(0, 0.5);
 
-		this.pauseButton = this.add
-			.text(WINDOW_WIDTH - PAUSE_BUTTON_RIGHT_MARGIN, 20, '||', {
+		// --- SFX Button Setup (Now far right) ---
+		this.sfxButton = this.add
+			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '🔊', {
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
+				// CHANGED: Individual padding values for more control
+				padding: { left: 8, right: 8, top: 10, bottom: 5 }, // Example: Increased top padding from 5 to 7
+			})
+			.setOrigin(1, 0.5) // Anchor to the right edge
+			.setInteractive()
+			.on('pointerdown', this.toggleSFX, this)
+			.setVisible(true); // Always shown
+
+		// --- Pause Button Setup (To the left of SFX button) ---
+		// (This button's padding remains as it was: { x: 8, y: 5 }, which means left: 8, right: 8, top: 5, bottom: 5)
+		const pauseButtonX =
+			this.sfxButton.x - this.sfxButton.displayWidth - UI_BUTTON_SPACING;
+
+		this.pauseButton = this.add
+			.text(pauseButtonX, UI_BUTTON_TOP_Y, '||', {
+				fontFamily: 'Courier Prime, Courier, monospace',
+				fontSize: '20px',
+				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
+				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
+				padding: { x: 8, y: 5 }, // This is equivalent to { left: 8, right: 8, top: 5, bottom: 5 }
 			})
 			.setOrigin(1, 0.5)
 			.setInteractive()
 			.on('pointerdown', this.togglePause, this)
 			.setVisible(false);
+		// Initial mute state for Phaser's sound manager
+		this.sound.mute = !this.sfxEnabled;
 
 		this.pausedText = this.add
 			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'PAUSED', {
@@ -392,8 +421,12 @@ class MainScene extends Phaser.Scene {
 		this.gameOverText.setVisible(false);
 		this.restartButton.setVisible(false);
 		this.startButton.setVisible(false);
-		this.pauseButton.setVisible(true);
-		this.pauseButton.setText('||');
+
+		// Show SFX and Pause buttons
+		this.sfxButton.setText(this.sfxEnabled ? '🔊' : '🔇'); // Set initial icon (already visible)
+		this.pauseButton.setVisible(true); // Pause button becomes visible on game start
+		this.pauseButton.setText('||'); // Ensure it's not on play icon if game over
+
 		if (this.pausedText) {
 			this.pausedText.setVisible(false);
 		}
@@ -410,12 +443,19 @@ class MainScene extends Phaser.Scene {
 
 		if (this.isPaused) {
 			this.physics.world.pause();
-			this.pauseButton.setText('\u25B6');
+			this.pauseButton.setText('\u25B6'); // Play icon
 			this.pausedText.setVisible(true);
 		} else {
 			this.physics.world.resume();
+			this.pauseButton.setText('||'); // Pause icon
 			this.pausedText.setVisible(false);
 		}
+	}
+
+	toggleSFX() {
+		this.sfxEnabled = !this.sfxEnabled;
+		this.sound.mute = !this.sfxEnabled; // Mute/unmute all sounds
+		this.sfxButton.setText(this.sfxEnabled ? '🔊' : '🔇'); // Set text to volume ON or OFF icon
 	}
 
 	randomizePlayerType() {
@@ -507,6 +547,7 @@ class MainScene extends Phaser.Scene {
 				this.restartButton.setVisible(true);
 				this.setRPSButtonsVisibility(false);
 				this.pauseButton.setVisible(false);
+				// SFX button remains visible on game over, as requested
 				this.pausedText.setVisible(false);
 				this.saveHighScore(this.current_score);
 			} else {
