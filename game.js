@@ -44,6 +44,16 @@ const UI_TOP_RIGHT_MARGIN = 20; // Margin from the right edge for the rightmost 
 const UI_BUTTON_TOP_Y = 20; // Y position for top-right UI buttons
 const UI_BUTTON_SPACING = 10; // Spacing between top-right UI buttons (like Pause and SFX)
 
+// Animation Constants
+const ROCK_BOB_AMOUNT = 5; // Pixels up/down
+const ROCK_BOB_DURATION = 600; // ms
+
+const PAPER_ROTATE_AMOUNT = 0.08; // Radians (approx 4.5 degrees)
+const PAPER_ROTATE_DURATION = 800; // ms
+
+const SCISSORS_SCALE_AMOUNT = 0.02; // Relative scale increase (e.g., if scale 0.33, goes to 0.35)
+const SCISSORS_SCALE_DURATION = 700; // ms
+
 // Button Text Content
 const BUTTON_TEXT = {
 	R: 'R',
@@ -208,8 +218,7 @@ class MainScene extends Phaser.Scene {
 				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				// CHANGED: Individual padding values for more control
-				padding: { left: 8, right: 8, top: 10, bottom: 5 }, // Example: Increased top padding from 5 to 7
+				padding: { left: 8, right: 8, top: 7, bottom: 5 }, // Individual padding for more control
 			})
 			.setOrigin(1, 0.5) // Anchor to the right edge
 			.setInteractive()
@@ -217,7 +226,9 @@ class MainScene extends Phaser.Scene {
 			.setVisible(true); // Always shown
 
 		// --- Pause Button Setup (To the left of SFX button) ---
-		// (This button's padding remains as it was: { x: 8, y: 5 }, which means left: 8, right: 8, top: 5, bottom: 5)
+		// Calculate X for Pause button based on SFX button's left edge
+		// sfxButton.x is its right edge (due to origin 1,0.5).
+		// sfxButton.x - sfxButton.displayWidth is its left edge.
 		const pauseButtonX =
 			this.sfxButton.x - this.sfxButton.displayWidth - UI_BUTTON_SPACING;
 
@@ -227,12 +238,13 @@ class MainScene extends Phaser.Scene {
 				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { x: 8, y: 5 }, // This is equivalent to { left: 8, right: 8, top: 5, bottom: 5 }
+				padding: { x: 8, y: 5 }, // Match SFX button padding for size
 			})
-			.setOrigin(1, 0.5)
+			.setOrigin(1, 0.5) // Anchor to the right edge
 			.setInteractive()
 			.on('pointerdown', this.togglePause, this)
-			.setVisible(false);
+			.setVisible(false); // Only visible when game starts
+
 		// Initial mute state for Phaser's sound manager
 		this.sound.mute = !this.sfxEnabled;
 
@@ -507,12 +519,49 @@ class MainScene extends Phaser.Scene {
 		const enemyAssetKey = this.getAssetKeyFromType(enemyType);
 		const enemy = this.enemies
 			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY + 10, enemyAssetKey)
-			.setScale(40 / 120)
+			.setScale(40 / 120) // Initial scale
 			.setOrigin(0.5, 1);
 		enemy.type = enemyType;
 		enemy.body.setAllowGravity(false);
 		enemy.body.setSize(enemy.width * 0.8, enemy.height * 0.8);
 		enemy.body.setOffset(enemy.width * 0.1, enemy.height * 0.2);
+
+		// Add animations based on enemy type
+		switch (enemyType) {
+			case 'R': // Rock: Bob up/down
+				this.tweens.add({
+					targets: enemy,
+					y: enemy.y - ROCK_BOB_AMOUNT, // Move up by ROCK_BOB_AMOUNT pixels
+					duration: ROCK_BOB_DURATION,
+					ease: 'Sine.easeInOut', // Smooth start and end
+					yoyo: true, // Go back and forth
+					repeat: -1, // Loop indefinitely
+				});
+				break;
+			case 'P': // Paper: Rotate back and forth
+				this.tweens.add({
+					targets: enemy,
+					rotation: { from: 0, to: PAPER_ROTATE_AMOUNT }, // Rotate from 0 to PAPER_ROTATE_AMOUNT (radians)
+					duration: PAPER_ROTATE_DURATION,
+					ease: 'Sine.easeInOut',
+					yoyo: true,
+					repeat: -1,
+				});
+				break;
+			case 'S': // Scissors: Scale up/down
+				// We need the initial scale to calculate the target scale
+				const initialScale = 40 / 120;
+				this.tweens.add({
+					targets: enemy,
+					scaleX: initialScale + SCISSORS_SCALE_AMOUNT, // Scale up
+					scaleY: initialScale + SCISSORS_SCALE_AMOUNT, // Scale up
+					duration: SCISSORS_SCALE_DURATION,
+					ease: 'Sine.easeInOut',
+					yoyo: true, // Scale back down
+					repeat: -1,
+				});
+				break;
+		}
 	}
 
 	getAssetKeyFromType(type) {
