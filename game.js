@@ -54,8 +54,18 @@ const PAPER_ROTATE_DURATION = 800; // ms
 const SCISSORS_SCALE_AMOUNT = 0.02; // Relative scale increase (e.g., if scale 0.33, goes to 0.35)
 const SCISSORS_SCALE_DURATION = 700; // ms
 
-// NEW: Enemy Spawning Rules
+// Enemy Spawning Rules
 const MAX_CONSECUTIVE_ENEMIES = 3; // Max number of times the same enemy type can appear in a row
+
+// Settings Panel Constants
+const SETTINGS_PANEL_WIDTH = 200;
+const SETTINGS_PANEL_HEIGHT = 120;
+const SETTINGS_PANEL_BG_COLOR = 0x313638; // Dark gray
+const SETTINGS_PANEL_TEXT_COLOR = 0xffffff; // White
+const SETTINGS_PANEL_BUTTON_PADDING_X = 15;
+const SETTINGS_PANEL_BUTTON_PADDING_Y = 10;
+const SETTINGS_PANEL_BUTTON_SPACING_Y = 15; // Vertical spacing between buttons inside panel
+const SETTINGS_PANEL_BUTTON_FONT_SIZE = '20px'; // Font size for buttons in panel
 
 // Button Text Content
 const BUTTON_TEXT = {
@@ -104,7 +114,7 @@ class MainScene extends Phaser.Scene {
 		this.min_wait_time = this.base_min_spawn_duration;
 		this.max_wait_time = this.base_max_spawn_duration;
 
-		// NEW: Properties for limiting consecutive enemies
+		// Properties for limiting consecutive enemies
 		this.lastEnemyType = null;
 		this.consecutiveEnemyCount = 0;
 
@@ -122,8 +132,13 @@ class MainScene extends Phaser.Scene {
 		this.isPaused = false;
 		this.pausedText = null;
 
-		// SFX Button
-		this.sfxButton = null;
+		// Settings UI elements
+		this.settingsButton = null;
+		this.settingsPanel = null;
+		this.sfxToggleButtonInPanel = null;
+		this.resetHsButtonInPanel = null;
+		this.wasGamePausedBeforeSettings = false; // To track if game was already paused by user
+
 		this.sfxEnabled = true; // SFX starts ON
 
 		this.original_ground_speed = this.ground_speed;
@@ -218,26 +233,25 @@ class MainScene extends Phaser.Scene {
 			)
 			.setOrigin(0, 0.5);
 
-		// --- SFX Button Setup (Now far right) ---
-		this.sfxButton = this.add
-			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '🔊', {
+		// --- Settings Button (rightmost) ---
+		this.settingsButton = this.add
+			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙️', {
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { left: 8, right: 8, top: 7, bottom: 5 }, // Individual padding for more control
+				padding: { left: 8, right: 8, top: 7, bottom: 5 },
 			})
-			.setOrigin(1, 0.5) // Anchor to the right edge
+			.setOrigin(1, 0.5)
 			.setInteractive()
-			.on('pointerdown', this.toggleSFX, this)
-			.setVisible(true); // Always shown
+			.on('pointerdown', this.toggleSettingsPanel, this)
+			.setVisible(true); // Always visible
 
-		// --- Pause Button Setup (To the left of SFX button) ---
-		// Calculate X for Pause button based on SFX button's left edge
-		// sfxButton.x is its right edge (due to origin 1,0.5).
-		// sfxButton.x - sfxButton.displayWidth is its left edge.
+		// --- Pause Button Setup (to the left of Settings button) ---
 		const pauseButtonX =
-			this.sfxButton.x - this.sfxButton.displayWidth - UI_BUTTON_SPACING;
+			this.settingsButton.x -
+			this.settingsButton.displayWidth -
+			UI_BUTTON_SPACING;
 
 		this.pauseButton = this.add
 			.text(pauseButtonX, UI_BUTTON_TOP_Y, '||', {
@@ -245,9 +259,9 @@ class MainScene extends Phaser.Scene {
 				fontSize: '20px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { x: 8, y: 5 }, // Match SFX button padding for size
+				padding: { x: 8, y: 5 },
 			})
-			.setOrigin(1, 0.5) // Anchor to the right edge
+			.setOrigin(1, 0.5)
 			.setInteractive()
 			.on('pointerdown', this.togglePause, this)
 			.setVisible(false); // Only visible when game starts
@@ -272,6 +286,101 @@ class MainScene extends Phaser.Scene {
 			})
 			.setOrigin(0.5)
 			.setVisible(false);
+
+		// --- Settings Panel Creation ---
+		this.settingsPanel = this.add
+			.container(
+				WINDOW_WIDTH / 2, // Centered horizontally
+				WINDOW_HEIGHT / 2 // Centered vertically
+			)
+			.setVisible(false); // Initially hidden
+
+		const panelBackground = this.add
+			.rectangle(
+				0,
+				0, // Relative to container's origin
+				SETTINGS_PANEL_WIDTH,
+				SETTINGS_PANEL_HEIGHT,
+				SETTINGS_PANEL_BG_COLOR
+			)
+			.setOrigin(0.5);
+		this.settingsPanel.add(panelBackground);
+
+		// SFX Toggle button inside panel
+		this.sfxToggleButtonInPanel = this.add
+			.text(
+				0,
+				0, // Temporary Y, will be adjusted
+				this.sfxEnabled ? 'SFX: ON' : 'SFX: OFF',
+				{
+					fontFamily: 'Courier Prime, Courier, monospace',
+					fontSize: SETTINGS_PANEL_BUTTON_FONT_SIZE,
+					fill:
+						'#' +
+						SETTINGS_PANEL_TEXT_COLOR.toString(16).padStart(6, '0'),
+					backgroundColor:
+						'#' +
+						DARK_BUTTON_BACKGROUND_COLOR.toString(16).padStart(
+							6,
+							'0'
+						),
+					padding: {
+						x: SETTINGS_PANEL_BUTTON_PADDING_X,
+						y: SETTINGS_PANEL_BUTTON_PADDING_Y,
+					},
+					align: 'center',
+					fixedWidth: SETTINGS_PANEL_WIDTH * 0.8, // Button width relative to panel
+				}
+			)
+			.setOrigin(0.5)
+			.setInteractive()
+			.on('pointerdown', this.toggleSFXFromPanel, this);
+		this.settingsPanel.add(this.sfxToggleButtonInPanel);
+
+		// Reset HS button inside panel
+		this.resetHsButtonInPanel = this.add
+			.text(
+				0,
+				0, // Temporary Y, will be adjusted
+				'Reset High Score',
+				{
+					fontFamily: 'Courier Prime, Courier, monospace',
+					fontSize: SETTINGS_PANEL_BUTTON_FONT_SIZE,
+					fill:
+						'#' +
+						SETTINGS_PANEL_TEXT_COLOR.toString(16).padStart(6, '0'),
+					backgroundColor:
+						'#' +
+						DARK_BUTTON_BACKGROUND_COLOR.toString(16).padStart(
+							6,
+							'0'
+						),
+					padding: {
+						x: SETTINGS_PANEL_BUTTON_PADDING_X,
+						y: SETTINGS_PANEL_BUTTON_PADDING_Y,
+					},
+					align: 'center',
+					fixedWidth: SETTINGS_PANEL_WIDTH * 0.8,
+				}
+			)
+			.setOrigin(0.5)
+			.setInteractive()
+			.on('pointerdown', this.resetHighScorePrompt, this);
+		this.settingsPanel.add(this.resetHsButtonInPanel);
+
+		// Adjust Y positions of buttons within the panel for proper vertical centering
+		const totalButtonsHeight =
+			this.sfxToggleButtonInPanel.displayHeight +
+			this.resetHsButtonInPanel.displayHeight +
+			SETTINGS_PANEL_BUTTON_SPACING_Y;
+		const topButtonY =
+			-(totalButtonsHeight / 2) +
+			this.sfxToggleButtonInPanel.displayHeight / 2;
+		this.sfxToggleButtonInPanel.y = topButtonY;
+		this.resetHsButtonInPanel.y =
+			topButtonY +
+			this.sfxToggleButtonInPanel.displayHeight +
+			SETTINGS_PANEL_BUTTON_SPACING_Y;
 
 		// --- RPS Buttons Setup ---
 		const totalButtonAreaWidth =
@@ -436,7 +545,7 @@ class MainScene extends Phaser.Scene {
 		this.time_since_last_spawn = 0;
 		this.enemies.clear(true, true);
 
-		// NEW: Reset consecutive enemy tracking on game start
+		// Reset consecutive enemy tracking on game start
 		this.lastEnemyType = null;
 		this.consecutiveEnemyCount = 0;
 
@@ -446,10 +555,10 @@ class MainScene extends Phaser.Scene {
 		this.restartButton.setVisible(false);
 		this.startButton.setVisible(false);
 
-		// Show SFX and Pause buttons
-		this.sfxButton.setText(this.sfxEnabled ? '🔊' : '🔇'); // Set initial icon (already visible)
-		this.pauseButton.setVisible(true); // Pause button becomes visible on game start
-		this.pauseButton.setText('||'); // Ensure it's not on play icon if game over
+		// Show UI buttons
+		this.pauseButton.setVisible(true);
+		this.settingsButton.setVisible(true); // Ensure settings button is visible
+		this.settingsPanel.setVisible(false); // Ensure settings panel is hidden
 
 		if (this.pausedText) {
 			this.pausedText.setVisible(false);
@@ -462,24 +571,80 @@ class MainScene extends Phaser.Scene {
 		this.physics.world.resume();
 	}
 
+	// --- NEW: Toggle Settings Panel ---
+	toggleSettingsPanel() {
+		if (this.settingsPanel.visible) {
+			// Closing the panel
+			this.settingsPanel.setVisible(false);
+			// Resume game only if it was NOT paused by the user before opening settings
+			if (!this.wasGamePausedBeforeSettings) {
+				this.physics.world.resume();
+			}
+		} else {
+			// Opening the panel
+			// Store whether the game was already paused by the user before opening settings
+			this.wasGamePausedBeforeSettings = this.isPaused;
+			this.settingsPanel.setVisible(true);
+			// Always pause game world when settings panel is open
+			this.physics.world.pause();
+		}
+	}
+
+	// --- Modified: Toggle Pause (to interact with settings panel) ---
 	togglePause() {
-		this.isPaused = !this.isPaused;
+		this.isPaused = !this.isPaused; // Toggle the user-initiated pause state
 
 		if (this.isPaused) {
 			this.physics.world.pause();
 			this.pauseButton.setText('\u25B6'); // Play icon
 			this.pausedText.setVisible(true);
+			// If settings panel is open while user pauses, close it
+			if (this.settingsPanel.visible) {
+				this.settingsPanel.setVisible(false);
+				// Also update wasGamePausedBeforeSettings to reflect user-initiated pause
+				this.wasGamePausedBeforeSettings = true;
+			}
 		} else {
 			this.physics.world.resume();
 			this.pauseButton.setText('||'); // Pause icon
 			this.pausedText.setVisible(false);
+			// Ensure settings panel is hidden if it was open before resume logic
+			if (this.settingsPanel.visible) {
+				// Should be hidden by togglePause above, but defensive check
+				this.settingsPanel.setVisible(false);
+			}
+			// Reset wasGamePausedBeforeSettings for the next time settings is opened
+			this.wasGamePausedBeforeSettings = false;
 		}
 	}
 
-	toggleSFX() {
+	// --- Modified: Toggle SFX (now called from panel) ---
+	toggleSFXFromPanel() {
 		this.sfxEnabled = !this.sfxEnabled;
 		this.sound.mute = !this.sfxEnabled; // Mute/unmute all sounds
-		this.sfxButton.setText(this.sfxEnabled ? '🔊' : '🔇'); // Set text to volume ON or OFF icon
+		// Update the text on the button inside the panel
+		this.sfxToggleButtonInPanel.setText(
+			this.sfxEnabled ? 'SFX: ON' : 'SFX: OFF'
+		);
+	}
+
+	// --- New: Reset High Score Prompt (called from panel) ---
+	resetHighScorePrompt() {
+		if (
+			confirm(
+				'Are you sure you want to reset your high score? This cannot be undone.'
+			)
+		) {
+			this.resetHighScore();
+		}
+	}
+
+	resetHighScore() {
+		localStorage.removeItem('rpsRunnerHighScore'); // This clears the specific item
+		this.high_score = 0; // Reset the in-game high score variable
+		this.updateScoreDisplay(); // Update the display
+		console.log('High score reset successfully!');
+		this.toggleSettingsPanel(); // Close settings panel after reset
 	}
 
 	// --- NEW METHOD: Applies animation to the player based on current type ---
@@ -586,7 +751,7 @@ class MainScene extends Phaser.Scene {
 		let enemyTypeToSpawn;
 		let availableTypes = [...ENEMY_TYPES]; // Create a mutable copy of all types
 
-		// NEW: Logic to limit consecutive enemy types
+		// Logic to limit consecutive enemy types
 		if (
 			this.lastEnemyType !== null &&
 			this.consecutiveEnemyCount >= MAX_CONSECUTIVE_ENEMIES
@@ -690,8 +855,9 @@ class MainScene extends Phaser.Scene {
 				this.gameOverText.setVisible(true);
 				this.restartButton.setVisible(true);
 				this.setRPSButtonsVisibility(false);
-				this.pauseButton.setVisible(false);
-				// SFX button remains visible on game over, as requested
+				this.pauseButton.setVisible(false); // Hide pause button on game over
+				this.settingsPanel.setVisible(false); // Ensure panel is hidden on game over
+				// The settings button remains visible, allowing high score reset after game over.
 				this.pausedText.setVisible(false);
 				this.saveHighScore(this.current_score);
 			} else {
