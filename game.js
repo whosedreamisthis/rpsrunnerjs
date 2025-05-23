@@ -293,7 +293,8 @@ class MainScene extends Phaser.Scene {
 				WINDOW_WIDTH / 2, // Centered horizontally
 				WINDOW_HEIGHT / 2 // Centered vertically
 			)
-			.setVisible(false); // Initially hidden
+			.setVisible(false)
+			.setDepth(10); // Initially hidden
 
 		const panelBackground = this.add
 			.rectangle(
