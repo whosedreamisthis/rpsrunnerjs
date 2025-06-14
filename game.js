@@ -239,7 +239,7 @@ class MainScene extends Phaser.Scene {
 			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙', {
 				// <--- Changed to '⚙'
 				fontFamily: 'Courier Prime, Courier, monospace',
-				fontSize: '20px',
+				fontSize: '30px',
 				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
 				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
 				padding: { left: 8, right: 8, top: 7, bottom: 5 },
