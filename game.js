@@ -1,96 +1,7 @@
 // game.js
 
 // --- Constants ---
-const WINDOW_WIDTH = 700;
-const WINDOW_HEIGHT = 350;
-const GAME_OBJECTS_BASE_Y_RATIO = 0.75;
-const GROUND_OFFSET_FROM_GAME_OBJECTS = 0;
-
-const ENEMY_TYPES = ['R', 'P', 'S'];
-const INITIAL_SPEED_UP_SCORE = 3; // First speed up happens when score hits 3
-const SUBSEQUENT_SPEED_UP_INTERVAL = 10; // Speed up every 10 points after that (e.g., 13, 23, 33...)
-const SPEED_INCREMENT_AMOUNT = 1; // NEW: How much speed increases per threshold (e.g., 1.0, 1.5, 2.0)
-
-const GOD_MODE = false;
-
-// Colors
-const WHITE = 0xffffff;
-const BLACK = 0x000000;
-const GREEN = 0x00c800;
-const DARK_GRAY = 0x313638;
-const OFFWHITE = 0xf0f0f0;
-const ROCK_COLOR = 0x59c3c3;
-const PAPER_COLOR = 0x774c60;
-const SCISSORS_COLOR = 0x84a98c;
-const DARK_BUTTON_BACKGROUND_COLOR = 0x1a1a1a;
-
-// Ground appearance
-const VISIBLE_GROUND_LINE_HEIGHT = 25;
-const GROUND_FILL_COLOR = 0x000000;
-
-// Vertical adjustment for ground and hands
-const VERTICAL_MOVE_UP_AMOUNT = 25;
-
-// Original spawn times in SECONDS
-const ORIGINAL_MIN_SPAWN_DURATION = 2.0; // seconds
-const ORIGINAL_MAX_SPAWN_DURATION = 4.0; // seconds
-
-// UI Button Constants
-const BUTTON_HORIZONTAL_PADDING = 20;
-const BUTTON_SPACING = 10;
-const BUTTON_PADDING_X = 20;
-const BUTTON_PADDING_Y = 15;
-const UI_TOP_RIGHT_MARGIN = 20; // Margin from the right edge for the rightmost UI element
-const UI_BUTTON_TOP_Y = 20; // Y position for top-right UI buttons
-const UI_BUTTON_SPACING = 10; // Spacing between top-right UI buttons (like Pause and SFX)
-
-// Animation Constants
-const ROCK_BOB_AMOUNT = 5; // Pixels up/down
-const ROCK_BOB_DURATION = 600; // ms
-
-const PAPER_ROTATE_AMOUNT = 0.08; // Radians (approx 4.5 degrees)
-const PAPER_ROTATE_DURATION = 800; // ms
-
-const SCISSORS_SCALE_AMOUNT = 0.02; // Relative scale increase (e.g., if scale 0.33, goes to 0.35)
-const SCISSORS_SCALE_DURATION = 700; // ms
-
-// Enemy Spawning Rules
-const MAX_CONSECUTIVE_ENEMIES = 3; // Max number of times the same enemy type can appear in a row
-
-// Settings Panel Constants
-const SETTINGS_PANEL_WIDTH = 200;
-const SETTINGS_PANEL_HEIGHT = 120;
-const SETTINGS_PANEL_BG_COLOR = 0x313638; // Dark gray
-const SETTINGS_PANEL_TEXT_COLOR = 0xffffff; // White
-const SETTINGS_PANEL_BUTTON_PADDING_X = 15;
-const SETTINGS_PANEL_BUTTON_PADDING_Y = 10;
-const SETTINGS_PANEL_BUTTON_SPACING_Y = 15; // Vertical spacing between buttons inside panel
-// In constants section:
-const SETTINGS_PANEL_BUTTON_FONT_SIZE = '20px'; // Font size for buttons in panel
-const SETTINGS_PANEL_BUTTON_FIXED_WIDTH_RATIO = 0.9; // NEW: Adjusted from 0.8 to give more room for text
-// Button Text Content
-const BUTTON_TEXT = {
-	R: 'R',
-	P: 'P',
-	S: 'S',
-};
-
-// Asset URLs
-const ASSET_URLS = {
-	rock: 'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/images/rock.png',
-	scissors:
-		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/images/scissors.png',
-	paper: 'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/images/paper.png',
-	ground: 'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/images/ground.png',
-	coinSound:
-		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/sounds/coin.wav',
-	injurySound:
-		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/sounds/injury.wav',
-	jumpSound:
-		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/sounds/jump.wav',
-};
-
-const SFX_VOLUME = 0.1;
+import * as constants from './constants.js';
 
 // --- Game Scene ---
 class MainScene extends Phaser.Scene {
@@ -105,13 +16,16 @@ class MainScene extends Phaser.Scene {
 		this.ground = null;
 		this.enemies = null;
 		this.ground_speed = 2; // Initial ground speed
-		this.next_speed_upgrade_score_threshold = INITIAL_SPEED_UP_SCORE;
+		this.next_speed_upgrade_score_threshold =
+			constants.INITIAL_SPEED_UP_SCORE;
 
 		// Enemy spawn management
 		this.time_since_last_spawn = 0;
 		this.time_until_next_spawn = 0;
-		this.base_min_spawn_duration = ORIGINAL_MIN_SPAWN_DURATION * 1000;
-		this.base_max_spawn_duration = ORIGINAL_MAX_SPAWN_DURATION * 1000;
+		this.base_min_spawn_duration =
+			constants.ORIGINAL_MIN_SPAWN_DURATION * 1000;
+		this.base_max_spawn_duration =
+			constants.ORIGINAL_MAX_SPAWN_DURATION * 1000;
 		this.min_wait_time = this.base_min_spawn_duration;
 		this.max_wait_time = this.base_max_spawn_duration;
 
@@ -145,62 +59,69 @@ class MainScene extends Phaser.Scene {
 		this.original_ground_speed = this.ground_speed;
 
 		this.gameObjectBaseY =
-			WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO - VERTICAL_MOVE_UP_AMOUNT;
+			constants.WINDOW_HEIGHT * constants.GAME_OBJECTS_BASE_Y_RATIO -
+			constants.VERTICAL_MOVE_UP_AMOUNT;
 	}
 
 	preload() {
-		this.load.image('rock', ASSET_URLS.rock);
-		this.load.image('scissors', ASSET_URLS.scissors);
-		this.load.image('paper', ASSET_URLS.paper);
-		this.load.image('ground', ASSET_URLS.ground);
+		this.load.image('rock', constants.ASSET_URLS.rock);
+		this.load.image('scissors', constants.ASSET_URLS.scissors);
+		this.load.image('paper', constants.ASSET_URLS.paper);
+		this.load.image('ground', constants.ASSET_URLS.ground);
 
-		this.load.audio('coin', ASSET_URLS.coinSound);
-		this.load.audio('injury', ASSET_URLS.injurySound);
-		this.load.audio('jump', ASSET_URLS.jumpSound);
+		this.load.audio('coin', constants.ASSET_URLS.coinSound);
+		this.load.audio('injury', constants.ASSET_URLS.injurySound);
+		this.load.audio('jump', constants.ASSET_URLS.jumpSound);
 	}
 
 	create() {
-		this.physics.world.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-		this.cameras.main.setBackgroundColor(OFFWHITE);
+		this.physics.world.setBounds(
+			0,
+			0,
+			constants.WINDOW_WIDTH,
+			constants.WINDOW_HEIGHT
+		);
+		this.cameras.main.setBackgroundColor(constants.OFFWHITE);
 
-		const groundY = this.gameObjectBaseY + GROUND_OFFSET_FROM_GAME_OBJECTS;
+		const groundY =
+			this.gameObjectBaseY + constants.GROUND_OFFSET_FROM_GAME_OBJECTS;
 		this.ground1 = this.add
 			.tileSprite(
 				0,
 				groundY,
-				WINDOW_WIDTH,
-				VISIBLE_GROUND_LINE_HEIGHT,
+				constants.WINDOW_WIDTH,
+				constants.VISIBLE_GROUND_LINE_HEIGHT,
 				'ground'
 			)
 			.setOrigin(0, 0);
 		this.ground2 = this.add
 			.tileSprite(
-				WINDOW_WIDTH,
+				constants.WINDOW_WIDTH,
 				groundY,
-				WINDOW_WIDTH,
-				VISIBLE_GROUND_LINE_HEIGHT,
+				constants.WINDOW_WIDTH,
+				constants.VISIBLE_GROUND_LINE_HEIGHT,
 				'ground'
 			)
 			.setOrigin(0, 0);
 
-		const groundFillY = groundY + VISIBLE_GROUND_LINE_HEIGHT;
-		const groundFillHeight = WINDOW_HEIGHT - groundFillY;
+		const groundFillY = groundY + constants.VISIBLE_GROUND_LINE_HEIGHT;
+		const groundFillHeight = constants.WINDOW_HEIGHT - groundFillY;
 		this.groundFill1 = this.add
 			.rectangle(
 				0,
 				groundFillY,
-				WINDOW_WIDTH,
+				constants.WINDOW_WIDTH,
 				groundFillHeight,
-				GROUND_FILL_COLOR
+				constants.GROUND_FILL_COLOR
 			)
 			.setOrigin(0, 0);
 		this.groundFill2 = this.add
 			.rectangle(
-				WINDOW_WIDTH,
+				constants.WINDOW_WIDTH,
 				groundFillY,
-				WINDOW_WIDTH,
+				constants.WINDOW_WIDTH,
 				groundFillHeight,
-				GROUND_FILL_COLOR
+				constants.GROUND_FILL_COLOR
 			)
 			.setOrigin(0, 0);
 
@@ -228,7 +149,8 @@ class MainScene extends Phaser.Scene {
 				{
 					fontFamily: 'Courier Prime, Courier, monospace',
 					fontSize: '20px',
-					fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
+					fill:
+						'#' + constants.DARK_GRAY.toString(16).padStart(6, '0'),
 					align: 'left',
 				}
 			)
@@ -236,14 +158,21 @@ class MainScene extends Phaser.Scene {
 
 		// --- Settings Button (rightmost) ---
 		this.settingsButton = this.add
-			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙️', {
-				// <--- Changed to '⚙'
-				fontFamily: 'Courier Prime, Courier, monospace',
-				fontSize: '30px',
-				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { left: 8, right: 8, top: 7, bottom: 5 },
-			})
+			.text(
+				constants.WINDOW_WIDTH - constants.UI_TOP_RIGHT_MARGIN,
+				constants.UI_BUTTON_TOP_Y,
+				'⚙️',
+				{
+					// <--- Changed to '⚙'
+					fontFamily: 'Courier Prime, Courier, monospace',
+					fontSize: '30px',
+					fill:
+						'#' + constants.DARK_GRAY.toString(16).padStart(6, '0'),
+					backgroundColor:
+						'#' + constants.OFFWHITE.toString(16).padStart(6, '0'),
+					padding: { left: 8, right: 8, top: 7, bottom: 5 },
+				}
+			)
 			// ... rest of the code
 			.setOrigin(1, 0.5)
 			.setInteractive()
@@ -254,14 +183,14 @@ class MainScene extends Phaser.Scene {
 		const pauseButtonX =
 			this.settingsButton.x -
 			this.settingsButton.displayWidth -
-			UI_BUTTON_SPACING;
+			constants.UI_BUTTON_SPACING;
 
 		// this.pauseButton = this.add
-		// 	.text(pauseButtonX, UI_BUTTON_TOP_Y, '||', {
+		// 	.text(pauseButtonX, constants.UI_BUTTON_TOP_Y, '||', {
 		// 		fontFamily: 'Courier Prime, Courier, monospace',
 		// 		fontSize: '20px',
-		// 		fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
-		// 		backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
+		// 		fill: '#' + constants.DARK_GRAY.toString(16).padStart(6, '0'),
+		// 		backgroundColor: '#' + constants.OFFWHITE.toString(16).padStart(6, '0'),
 		// 		padding: { x: 8, y: 5 },
 		// 	})
 		// 	.setOrigin(1, 0.5)
@@ -273,20 +202,33 @@ class MainScene extends Phaser.Scene {
 		this.sound.mute = !this.sfxEnabled;
 
 		this.pausedText = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'PAUSED', {
-				fontFamily: 'Courier Prime, Courier, monospace',
-				fontSize: '50px',
-				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
-			})
+			.text(
+				constants.WINDOW_WIDTH / 2,
+				constants.WINDOW_HEIGHT / 2 - 70,
+				'PAUSED',
+				{
+					fontFamily: 'Courier Prime, Courier, monospace',
+					fontSize: '50px',
+					fill:
+						'#' + constants.DARK_GRAY.toString(16).padStart(6, '0'),
+				}
+			)
 			.setOrigin(0.5)
 			.setVisible(false);
 
 		this.gameOverText = this.add
-			.text(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 70, 'GAME OVER!', {
-				fontFamily: 'Courier Prime, Courier, monospace',
-				fontSize: '50px',
-				fill: '#' + ROCK_COLOR.toString(16).padStart(6, '0'),
-			})
+			.text(
+				constants.WINDOW_WIDTH / 2,
+				constants.WINDOW_HEIGHT / 2 - 70,
+				'GAME OVER!',
+				{
+					fontFamily: 'Courier Prime, Courier, monospace',
+					fontSize: '50px',
+					fill:
+						'#' +
+						constants.ROCK_COLOR.toString(16).padStart(6, '0'),
+				}
+			)
 			.setOrigin(0.5)
 			.setVisible(false);
 
@@ -295,8 +237,8 @@ class MainScene extends Phaser.Scene {
 			.rectangle(
 				0,
 				0, // Position (top-left)
-				WINDOW_WIDTH,
-				WINDOW_HEIGHT, // Size
+				constants.WINDOW_WIDTH,
+				constants.WINDOW_HEIGHT, // Size
 				0x000000, // Black color
 				0 // Alpha (50% transparency)
 			)
@@ -311,8 +253,8 @@ class MainScene extends Phaser.Scene {
 		// --- Settings Panel Creation ---
 		this.settingsPanel = this.add
 			.container(
-				WINDOW_WIDTH / 2, // Centered horizontally
-				WINDOW_HEIGHT / 2 // Centered vertically
+				constants.WINDOW_WIDTH / 2, // Centered horizontally
+				constants.WINDOW_HEIGHT / 2 // Centered vertically
 			)
 			.setVisible(false)
 			.setDepth(10); // Initially hidden
@@ -321,9 +263,9 @@ class MainScene extends Phaser.Scene {
 			.rectangle(
 				0,
 				0, // Relative to container's origin
-				SETTINGS_PANEL_WIDTH,
-				SETTINGS_PANEL_HEIGHT,
-				SETTINGS_PANEL_BG_COLOR
+				constants.SETTINGS_PANEL_WIDTH,
+				constants.SETTINGS_PANEL_HEIGHT,
+				constants.SETTINGS_PANEL_BG_COLOR
 			)
 			.setOrigin(0.5);
 		this.settingsPanel.add(panelBackground);
@@ -336,22 +278,23 @@ class MainScene extends Phaser.Scene {
 				this.sfxEnabled ? 'SFX: ON' : 'SFX: OFF',
 				{
 					fontFamily: 'Courier Prime, Courier, monospace',
-					fontSize: SETTINGS_PANEL_BUTTON_FONT_SIZE,
+					fontSize: constants.SETTINGS_PANEL_BUTTON_FONT_SIZE,
 					fill:
 						'#' +
-						SETTINGS_PANEL_TEXT_COLOR.toString(16).padStart(6, '0'),
+						constants.SETTINGS_PANEL_TEXT_COLOR.toString(
+							16
+						).padStart(6, '0'),
 					backgroundColor:
 						'#' +
-						DARK_BUTTON_BACKGROUND_COLOR.toString(16).padStart(
-							6,
-							'0'
-						),
+						constants.DARK_BUTTON_BACKGROUND_COLOR.toString(
+							16
+						).padStart(6, '0'),
 					padding: {
-						x: SETTINGS_PANEL_BUTTON_PADDING_X,
-						y: SETTINGS_PANEL_BUTTON_PADDING_Y,
+						x: constants.SETTINGS_PANEL_BUTTON_PADDING_X,
+						y: constants.SETTINGS_PANEL_BUTTON_PADDING_Y,
 					},
 					align: 'center',
-					fixedWidth: SETTINGS_PANEL_WIDTH * 0.8, // Button width relative to panel
+					fixedWidth: constants.SETTINGS_PANEL_WIDTH * 0.8, // Button width relative to panel
 				}
 			)
 			.setOrigin(0.5)
@@ -367,24 +310,25 @@ class MainScene extends Phaser.Scene {
 				'Reset High S',
 				{
 					fontFamily: 'Courier Prime, Courier, monospace',
-					fontSize: SETTINGS_PANEL_BUTTON_FONT_SIZE,
+					fontSize: constants.SETTINGS_PANEL_BUTTON_FONT_SIZE,
 					fill:
 						'#' +
-						SETTINGS_PANEL_TEXT_COLOR.toString(16).padStart(6, '0'),
+						constants.SETTINGS_PANEL_TEXT_COLOR.toString(
+							16
+						).padStart(6, '0'),
 					backgroundColor:
 						'#' +
-						DARK_BUTTON_BACKGROUND_COLOR.toString(16).padStart(
-							6,
-							'0'
-						),
+						constants.DARK_BUTTON_BACKGROUND_COLOR.toString(
+							16
+						).padStart(6, '0'),
 					padding: {
-						x: SETTINGS_PANEL_BUTTON_PADDING_X,
-						y: SETTINGS_PANEL_BUTTON_PADDING_Y,
+						x: constants.SETTINGS_PANEL_BUTTON_PADDING_X,
+						y: constants.SETTINGS_PANEL_BUTTON_PADDING_Y,
 					},
 					align: 'center',
 					fixedWidth:
-						SETTINGS_PANEL_WIDTH *
-						SETTINGS_PANEL_BUTTON_FIXED_WIDTH_RATIO,
+						constants.SETTINGS_PANEL_WIDTH *
+						constants.SETTINGS_PANEL_BUTTON_FIXED_WIDTH_RATIO,
 				}
 			)
 			.setOrigin(0.5)
@@ -396,7 +340,7 @@ class MainScene extends Phaser.Scene {
 		const totalButtonsHeight =
 			this.sfxToggleButtonInPanel.displayHeight +
 			this.resetHsButtonInPanel.displayHeight +
-			SETTINGS_PANEL_BUTTON_SPACING_Y;
+			constants.SETTINGS_PANEL_BUTTON_SPACING_Y;
 		const topButtonY =
 			-(totalButtonsHeight / 2) +
 			this.sfxToggleButtonInPanel.displayHeight / 2;
@@ -404,51 +348,55 @@ class MainScene extends Phaser.Scene {
 		this.resetHsButtonInPanel.y =
 			topButtonY +
 			this.sfxToggleButtonInPanel.displayHeight +
-			SETTINGS_PANEL_BUTTON_SPACING_Y;
+			constants.SETTINGS_PANEL_BUTTON_SPACING_Y;
 
 		// --- RPS Buttons Setup ---
 		const totalButtonAreaWidth =
-			WINDOW_WIDTH - 2 * BUTTON_HORIZONTAL_PADDING;
+			constants.WINDOW_WIDTH - 2 * constants.BUTTON_HORIZONTAL_PADDING;
 		const singleButtonCalculatedWidth =
-			(totalButtonAreaWidth - 2 * BUTTON_SPACING) / 3;
+			(totalButtonAreaWidth - 2 * constants.BUTTON_SPACING) / 3;
 		const buttonTextHeight = 32;
-		const singleButtonHeight = buttonTextHeight + 2 * BUTTON_PADDING_Y;
+		const singleButtonHeight =
+			buttonTextHeight + 2 * constants.BUTTON_PADDING_Y;
 		const visualGroundBottomY =
-			WINDOW_HEIGHT * GAME_OBJECTS_BASE_Y_RATIO -
-			VERTICAL_MOVE_UP_AMOUNT +
-			VISIBLE_GROUND_LINE_HEIGHT;
-		const buttonY = (visualGroundBottomY + WINDOW_HEIGHT) / 2;
+			constants.WINDOW_HEIGHT * constants.GAME_OBJECTS_BASE_Y_RATIO -
+			constants.VERTICAL_MOVE_UP_AMOUNT +
+			constants.VISIBLE_GROUND_LINE_HEIGHT;
+		const buttonY = (visualGroundBottomY + constants.WINDOW_HEIGHT) / 2;
 
 		const rockX =
-			BUTTON_HORIZONTAL_PADDING + singleButtonCalculatedWidth / 2;
-		const paperX = rockX + singleButtonCalculatedWidth + BUTTON_SPACING;
-		const scissorsX = paperX + singleButtonCalculatedWidth + BUTTON_SPACING;
+			constants.BUTTON_HORIZONTAL_PADDING +
+			singleButtonCalculatedWidth / 2;
+		const paperX =
+			rockX + singleButtonCalculatedWidth + constants.BUTTON_SPACING;
+		const scissorsX =
+			paperX + singleButtonCalculatedWidth + constants.BUTTON_SPACING;
 
 		this.rockButton = this.createRPSButton(
 			rockX,
 			buttonY,
 			'R',
-			BUTTON_TEXT.R,
+			constants.BUTTON_TEXT.R,
 			'rock',
-			ROCK_COLOR,
+			constants.ROCK_COLOR,
 			singleButtonCalculatedWidth
 		);
 		this.paperButton = this.createRPSButton(
 			paperX,
 			buttonY,
 			'P',
-			BUTTON_TEXT.P,
+			constants.BUTTON_TEXT.P,
 			'paper',
-			PAPER_COLOR,
+			constants.PAPER_COLOR,
 			singleButtonCalculatedWidth
 		);
 		this.scissorsButton = this.createRPSButton(
 			scissorsX,
 			buttonY,
 			'S',
-			BUTTON_TEXT.S,
+			constants.BUTTON_TEXT.S,
 			'scissors',
-			SCISSORS_COLOR,
+			constants.SCISSORS_COLOR,
 			singleButtonCalculatedWidth
 		);
 		this.setRPSButtonsVisibility(false);
@@ -458,9 +406,10 @@ class MainScene extends Phaser.Scene {
 			.text(paperX, buttonY, 'START GAME', {
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '32px',
-				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { x: 10, y: BUTTON_PADDING_Y },
+				fill: '#' + constants.PAPER_COLOR.toString(16).padStart(6, '0'),
+				backgroundColor:
+					'#' + constants.OFFWHITE.toString(16).padStart(6, '0'),
+				padding: { x: 10, y: constants.BUTTON_PADDING_Y },
 				fixedWidth: singleButtonCalculatedWidth,
 				align: 'center',
 			})
@@ -473,9 +422,10 @@ class MainScene extends Phaser.Scene {
 			.text(paperX, buttonY, 'Restart', {
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '32px',
-				fill: '#' + PAPER_COLOR.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { x: 10, y: BUTTON_PADDING_Y },
+				fill: '#' + constants.PAPER_COLOR.toString(16).padStart(6, '0'),
+				backgroundColor:
+					'#' + constants.OFFWHITE.toString(16).padStart(6, '0'),
+				padding: { x: 10, y: constants.BUTTON_PADDING_Y },
 				fixedWidth: singleButtonCalculatedWidth,
 				align: 'center',
 			})
@@ -543,18 +493,19 @@ class MainScene extends Phaser.Scene {
 			this.current_score > 0 &&
 			this.current_score >= this.next_speed_upgrade_score_threshold
 		) {
-			this.ground_speed += SPEED_INCREMENT_AMOUNT; // CHANGED: Speed increases by SPEED_INCREMENT_AMOUNT
+			this.ground_speed += constants.SPEED_INCREMENT_AMOUNT; // CHANGED: Speed increases by SPEED_INCREMENT_AMOUNT
 
 			// Calculate the next threshold based on whether it's the initial or subsequent increase
 			if (
 				this.next_speed_upgrade_score_threshold ===
-				INITIAL_SPEED_UP_SCORE
+				constants.INITIAL_SPEED_UP_SCORE
 			) {
 				this.next_speed_upgrade_score_threshold =
-					INITIAL_SPEED_UP_SCORE + SUBSEQUENT_SPEED_UP_INTERVAL;
+					constants.INITIAL_SPEED_UP_SCORE +
+					constants.SUBSEQUENT_SPEED_UP_INTERVAL;
 			} else {
 				this.next_speed_upgrade_score_threshold +=
-					SUBSEQUENT_SPEED_UP_INTERVAL;
+					constants.SUBSEQUENT_SPEED_UP_INTERVAL;
 			}
 			this.adjustSpawnRate(this.ground_speed);
 		}
@@ -590,7 +541,8 @@ class MainScene extends Phaser.Scene {
 		this.randomizePlayerType(); // This will now also apply player animation
 		this.updateScoreDisplay();
 		this.adjustSpawnRate(this.ground_speed);
-		this.next_speed_upgrade_score_threshold = INITIAL_SPEED_UP_SCORE;
+		this.next_speed_upgrade_score_threshold =
+			constants.INITIAL_SPEED_UP_SCORE;
 
 		this.physics.world.resume();
 	}
@@ -691,8 +643,8 @@ class MainScene extends Phaser.Scene {
 			case 'R': // Rock: Bob up/down
 				this.tweens.add({
 					targets: this.player,
-					y: this.player.y - ROCK_BOB_AMOUNT, // Move player sprite up
-					duration: ROCK_BOB_DURATION,
+					y: this.player.y - constants.ROCK_BOB_AMOUNT, // Move player sprite up
+					duration: constants.ROCK_BOB_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
 					repeat: -1,
@@ -701,8 +653,8 @@ class MainScene extends Phaser.Scene {
 			case 'P': // Paper: Rotate back and forth
 				this.tweens.add({
 					targets: this.player,
-					rotation: { from: 0, to: PAPER_ROTATE_AMOUNT },
-					duration: PAPER_ROTATE_DURATION,
+					rotation: { from: 0, to: constants.PAPER_ROTATE_AMOUNT },
+					duration: constants.PAPER_ROTATE_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
 					repeat: -1,
@@ -712,9 +664,9 @@ class MainScene extends Phaser.Scene {
 				const initialScale = 40 / 120;
 				this.tweens.add({
 					targets: this.player,
-					scaleX: initialScale + SCISSORS_SCALE_AMOUNT,
-					scaleY: initialScale + SCISSORS_SCALE_AMOUNT,
-					duration: SCISSORS_SCALE_DURATION,
+					scaleX: initialScale + constants.SCISSORS_SCALE_AMOUNT,
+					scaleY: initialScale + constants.SCISSORS_SCALE_AMOUNT,
+					duration: constants.SCISSORS_SCALE_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
 					repeat: -1,
@@ -730,7 +682,7 @@ class MainScene extends Phaser.Scene {
 	}
 
 	randomizePlayerType() {
-		this.playerType = Phaser.Math.RND.pick(ENEMY_TYPES);
+		this.playerType = Phaser.Math.RND.pick(constants.ENEMY_TYPES);
 		this.player.setTexture(this.getAssetKeyFromType(this.playerType));
 		this.applyPlayerAnimation(); // Call the new animation function
 	}
@@ -744,7 +696,7 @@ class MainScene extends Phaser.Scene {
 		buttonColor,
 		buttonWidth
 	) {
-		const bgColor = '#' + OFFWHITE.toString(16).padStart(6, '0');
+		const bgColor = '#' + constants.OFFWHITE.toString(16).padStart(6, '0');
 		const textColor = '#' + buttonColor.toString(16).padStart(6, '0');
 
 		const button = this.add
@@ -753,7 +705,10 @@ class MainScene extends Phaser.Scene {
 				fontSize: '32px',
 				fill: textColor,
 				backgroundColor: bgColor,
-				padding: { x: BUTTON_PADDING_X, y: BUTTON_PADDING_Y },
+				padding: {
+					x: constants.BUTTON_PADDING_X,
+					y: constants.BUTTON_PADDING_Y,
+				},
 				fixedWidth: buttonWidth,
 				align: 'center',
 			})
@@ -777,12 +732,12 @@ class MainScene extends Phaser.Scene {
 
 	spawnEnemy() {
 		let enemyTypeToSpawn;
-		let availableTypes = [...ENEMY_TYPES]; // Create a mutable copy of all types
+		let availableTypes = [...constants.ENEMY_TYPES]; // Create a mutable copy of all types
 
 		// Logic to limit consecutive enemy types
 		if (
 			this.lastEnemyType !== null &&
-			this.consecutiveEnemyCount >= MAX_CONSECUTIVE_ENEMIES
+			this.consecutiveEnemyCount >= constants.MAX_CONSECUTIVE_ENEMIES
 		) {
 			// If the limit is reached, filter out the last enemy type
 			availableTypes = availableTypes.filter(
@@ -804,7 +759,11 @@ class MainScene extends Phaser.Scene {
 
 		const enemyAssetKey = this.getAssetKeyFromType(enemyTypeToSpawn);
 		const enemy = this.enemies
-			.create(WINDOW_WIDTH + 50, this.gameObjectBaseY + 10, enemyAssetKey)
+			.create(
+				constants.WINDOW_WIDTH + 50,
+				this.gameObjectBaseY + 10,
+				enemyAssetKey
+			)
 			.setScale(40 / 120) // Initial scale
 			.setOrigin(0.5, 1);
 		enemy.type = enemyTypeToSpawn; // Assign the determined type to the enemy object
@@ -819,8 +778,8 @@ class MainScene extends Phaser.Scene {
 			case 'R': // Rock: Bob up/down
 				this.tweens.add({
 					targets: enemy,
-					y: enemy.y - ROCK_BOB_AMOUNT,
-					duration: ROCK_BOB_DURATION,
+					y: enemy.y - constants.ROCK_BOB_AMOUNT,
+					duration: constants.ROCK_BOB_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
 					repeat: -1,
@@ -829,8 +788,8 @@ class MainScene extends Phaser.Scene {
 			case 'P': // Paper: Rotate back and forth
 				this.tweens.add({
 					targets: enemy,
-					rotation: { from: 0, to: PAPER_ROTATE_AMOUNT },
-					duration: PAPER_ROTATE_DURATION,
+					rotation: { from: 0, to: constants.PAPER_ROTATE_AMOUNT },
+					duration: constants.PAPER_ROTATE_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
 					repeat: -1,
@@ -841,9 +800,9 @@ class MainScene extends Phaser.Scene {
 				const initialScale = 40 / 120;
 				this.tweens.add({
 					targets: enemy,
-					scaleX: initialScale + SCISSORS_SCALE_AMOUNT,
-					scaleY: initialScale + SCISSORS_SCALE_AMOUNT,
-					duration: SCISSORS_SCALE_DURATION,
+					scaleX: initialScale + constants.SCISSORS_SCALE_AMOUNT,
+					scaleY: initialScale + constants.SCISSORS_SCALE_AMOUNT,
+					duration: constants.SCISSORS_SCALE_DURATION,
 					ease: 'Sine.easeInOut',
 					yoyo: true,
 					repeat: -1,
@@ -873,12 +832,12 @@ class MainScene extends Phaser.Scene {
 		) {
 			enemySprite.duelHandled = true;
 
-			const winner = GOD_MODE
+			const winner = constants.GOD_MODE
 				? 'Player'
 				: this.duel(this.playerType, enemySprite.type);
 
 			if (winner === 'Enemy') {
-				this.sound.play('injury', { volume: SFX_VOLUME });
+				this.sound.play('injury', { volume: constants.SFX_VOLUME });
 				this.game_over = true;
 				this.gameOverText.setVisible(true);
 				this.restartButton.setVisible(true);
@@ -891,9 +850,9 @@ class MainScene extends Phaser.Scene {
 			} else {
 				if (winner === 'Player') {
 					this.current_score += 1;
-					this.sound.play('coin', { volume: SFX_VOLUME });
+					this.sound.play('coin', { volume: constants.SFX_VOLUME });
 				} else if (winner === 'Tie') {
-					this.sound.play('jump', { volume: SFX_VOLUME });
+					this.sound.play('jump', { volume: constants.SFX_VOLUME });
 				}
 				enemySprite.destroy();
 				this.updateScoreDisplay();
@@ -971,8 +930,8 @@ class MainScene extends Phaser.Scene {
 // --- Phaser Game Configuration ---
 const config = {
 	type: Phaser.AUTO,
-	width: WINDOW_WIDTH,
-	height: WINDOW_HEIGHT,
+	width: constants.WINDOW_WIDTH,
+	height: constants.WINDOW_HEIGHT,
 	parent: 'game-container',
 	physics: {
 		default: 'arcade',
