@@ -256,18 +256,18 @@ class MainScene extends Phaser.Scene {
 			this.settingsButton.displayWidth -
 			UI_BUTTON_SPACING;
 
-		this.pauseButton = this.add
-			.text(pauseButtonX, UI_BUTTON_TOP_Y, '||', {
-				fontFamily: 'Courier Prime, Courier, monospace',
-				fontSize: '20px',
-				fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
-				backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
-				padding: { x: 8, y: 5 },
-			})
-			.setOrigin(1, 0.5)
-			.setInteractive()
-			.on('pointerdown', this.togglePause, this)
-			.setVisible(false); // Only visible when game starts
+		// this.pauseButton = this.add
+		// 	.text(pauseButtonX, UI_BUTTON_TOP_Y, '||', {
+		// 		fontFamily: 'Courier Prime, Courier, monospace',
+		// 		fontSize: '20px',
+		// 		fill: '#' + DARK_GRAY.toString(16).padStart(6, '0'),
+		// 		backgroundColor: '#' + OFFWHITE.toString(16).padStart(6, '0'),
+		// 		padding: { x: 8, y: 5 },
+		// 	})
+		// 	.setOrigin(1, 0.5)
+		// 	.setInteractive()
+		// 	.on('pointerdown', this.togglePause, this)
+		// 	.setVisible(false); // Only visible when game starts
 
 		// Initial mute state for Phaser's sound manager
 		this.sound.mute = !this.sfxEnabled;
@@ -562,7 +562,7 @@ class MainScene extends Phaser.Scene {
 		this.startButton.setVisible(false);
 
 		// Show UI buttons
-		this.pauseButton.setVisible(true);
+		// this.pauseButton.setVisible(true);
 		this.settingsButton.setVisible(true); // Ensure settings button is visible
 		this.settingsPanel.setVisible(false); // Ensure settings panel is hidden
 
@@ -582,6 +582,7 @@ class MainScene extends Phaser.Scene {
 		if (this.settingsPanel.visible) {
 			// Closing the panel
 			this.settingsPanel.setVisible(false);
+			this.isPaused = false;
 			// Resume game only if it was NOT paused by the user before opening settings
 			if (!this.wasGamePausedBeforeSettings) {
 				this.physics.world.resume();
@@ -591,6 +592,7 @@ class MainScene extends Phaser.Scene {
 			// Store whether the game was already paused by the user before opening settings
 			this.wasGamePausedBeforeSettings = this.isPaused;
 			this.settingsPanel.setVisible(true);
+			this.isPaused = true;
 			// Always pause game world when settings panel is open
 			this.physics.world.pause();
 		}
@@ -602,7 +604,7 @@ class MainScene extends Phaser.Scene {
 
 		if (this.isPaused) {
 			this.physics.world.pause();
-			this.pauseButton.setText('\u25B6'); // Play icon
+			// this.pauseButton.setText('\u25B6'); // Play icon
 			this.pausedText.setVisible(true);
 			// If settings panel is open while user pauses, close it
 			if (this.settingsPanel.visible) {
@@ -612,7 +614,7 @@ class MainScene extends Phaser.Scene {
 			}
 		} else {
 			this.physics.world.resume();
-			this.pauseButton.setText('||'); // Pause icon
+			// this.pauseButton.setText('||'); // Pause icon
 			this.pausedText.setVisible(false);
 			// Ensure settings panel is hidden if it was open before resume logic
 			if (this.settingsPanel.visible) {
@@ -861,7 +863,7 @@ class MainScene extends Phaser.Scene {
 				this.gameOverText.setVisible(true);
 				this.restartButton.setVisible(true);
 				this.setRPSButtonsVisibility(false);
-				this.pauseButton.setVisible(false); // Hide pause button on game over
+				// this.pauseButton.setVisible(false); // Hide pause button on game over
 				this.settingsPanel.setVisible(false); // Ensure panel is hidden on game over
 				// The settings button remains visible, allowing high score reset after game over.
 				this.pausedText.setVisible(false);
