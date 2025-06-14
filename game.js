@@ -90,7 +90,7 @@ const ASSET_URLS = {
 		'https://raw.githubusercontent.com/whosedreamisthis/rpsrunner/main/assets/sounds/jump.wav',
 };
 
-const SFX_VOLUME = 0.1;
+const SFX_VOLUME = 0.5;
 
 // --- Game Scene ---
 class MainScene extends Phaser.Scene {
