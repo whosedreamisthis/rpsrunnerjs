@@ -139,7 +139,7 @@ class MainScene extends Phaser.Scene {
 		this.sfxToggleButtonInPanel = null;
 		this.resetHsButtonInPanel = null;
 		this.wasGamePausedBeforeSettings = false; // To track if game was already paused by user
-
+		this.settingsOverlay = null;
 		this.sfxEnabled = true; // SFX starts ON
 
 		this.original_ground_speed = this.ground_speed;
@@ -289,6 +289,24 @@ class MainScene extends Phaser.Scene {
 			})
 			.setOrigin(0.5)
 			.setVisible(false);
+
+		// NEW: Add a full-screen, semi-transparent overlay for settings panel dismissal
+		this.settingsOverlay = this.add
+			.rectangle(
+				0,
+				0, // Position (top-left)
+				WINDOW_WIDTH,
+				WINDOW_HEIGHT, // Size
+				0x000000, // Black color
+				0 // Alpha (50% transparency)
+			)
+			.setOrigin(0, 0) // Set origin to top-left
+			.setDepth(9) // Below settingsPanel (which is 10)
+			.setInteractive() // Make it clickable
+			.setVisible(false); // Initially hidden
+
+		// Add click listener to the overlay to close settings
+		this.settingsOverlay.on('pointerdown', this.toggleSettingsPanel, this);
 
 		// --- Settings Panel Creation ---
 		this.settingsPanel = this.add
@@ -582,6 +600,7 @@ class MainScene extends Phaser.Scene {
 		if (this.settingsPanel.visible) {
 			// Closing the panel
 			this.settingsPanel.setVisible(false);
+			this.settingsOverlay.setVisible(false);
 			this.isPaused = false;
 			// Resume game only if it was NOT paused by the user before opening settings
 			if (!this.wasGamePausedBeforeSettings) {
@@ -593,6 +612,7 @@ class MainScene extends Phaser.Scene {
 			this.wasGamePausedBeforeSettings = this.isPaused;
 			this.settingsPanel.setVisible(true);
 			this.isPaused = true;
+			this.settingsOverlay.setVisible(true);
 			// Always pause game world when settings panel is open
 			this.physics.world.pause();
 		}
