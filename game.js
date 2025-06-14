@@ -2,6 +2,7 @@
 
 // --- Constants ---
 import * as constants from './constants.js';
+import { Player } from './player.js'; // Import the Player class
 
 // --- Game Scene ---
 class MainScene extends Phaser.Scene {
@@ -11,7 +12,7 @@ class MainScene extends Phaser.Scene {
 		this.game_over = false;
 		this.current_score = 0;
 		this.high_score = 0;
-		this.playerType = null;
+		// Player instance will be created in `create`
 		this.player = null;
 		this.ground = null;
 		this.enemies = null;
@@ -127,14 +128,11 @@ class MainScene extends Phaser.Scene {
 
 		this.enemies = this.physics.add.group();
 
-		this.player = this.physics.add
-			.sprite(35, this.gameObjectBaseY + 10, 'paper')
-			.setScale(40 / 120)
-			.setOrigin(0.5, 1);
-		this.player.setCollideWorldBounds(true);
-		this.player.body.setAllowGravity(false);
+		// Instantiate the Player class
+		this.player = new Player(this, 35, this.gameObjectBaseY + 10, 'paper');
+		// Note: The player.js class handles setting scale, origin, world bounds, and gravity internally.
 
-		this.randomizePlayerType();
+		this.player.randomizeType(); // Use the Player class's method
 
 		this.high_score = this.loadHighScore();
 		this.scoreText = this.add
@@ -184,19 +182,6 @@ class MainScene extends Phaser.Scene {
 			this.settingsButton.x -
 			this.settingsButton.displayWidth -
 			constants.UI_BUTTON_SPACING;
-
-		// this.pauseButton = this.add
-		// 	.text(pauseButtonX, constants.UI_BUTTON_TOP_Y, '||', {
-		// 		fontFamily: 'Courier Prime, Courier, monospace',
-		// 		fontSize: '20px',
-		// 		fill: '#' + constants.DARK_GRAY.toString(16).padStart(6, '0'),
-		// 		backgroundColor: '#' + constants.OFFWHITE.toString(16).padStart(6, '0'),
-		// 		padding: { x: 8, y: 5 },
-		// 	})
-		// 	.setOrigin(1, 0.5)
-		// 	.setInteractive()
-		// 	.on('pointerdown', this.togglePause, this)
-		// 	.setVisible(false); // Only visible when game starts
 
 		// Initial mute state for Phaser's sound manager
 		this.sound.mute = !this.sfxEnabled;
@@ -440,7 +425,7 @@ class MainScene extends Phaser.Scene {
 		);
 
 		this.physics.add.overlap(
-			this.player,
+			this.player.sprite, // Use the actual sprite from the Player instance
 			this.enemies,
 			this.handleCollision,
 			null,
@@ -531,14 +516,13 @@ class MainScene extends Phaser.Scene {
 		this.startButton.setVisible(false);
 
 		// Show UI buttons
-		// this.pauseButton.setVisible(true);
 		this.settingsButton.setVisible(true); // Ensure settings button is visible
 		this.settingsPanel.setVisible(false); // Ensure settings panel is hidden
 
 		if (this.pausedText) {
 			this.pausedText.setVisible(false);
 		}
-		this.randomizePlayerType(); // This will now also apply player animation
+		this.player.randomizeType(); // Use the Player class's method
 		this.updateScoreDisplay();
 		this.adjustSpawnRate(this.ground_speed);
 		this.next_speed_upgrade_score_threshold =
@@ -627,66 +611,6 @@ class MainScene extends Phaser.Scene {
 		this.toggleSettingsPanel(); // Close settings panel after reset
 	}
 
-	// --- NEW METHOD: Applies animation to the player based on current type ---
-	applyPlayerAnimation() {
-		// Stop any currently running tweens on the player to prevent multiple animations
-		this.tweens.killTweensOf(this.player);
-
-		// Reset player's properties to their default state before applying new animation
-		this.player.rotation = 0; // Reset rotation
-		this.player.setScale(40 / 120); // Reset to base scale
-		// Reset Y position if it was affected by bob (to ensure consistent start for new anim)
-		this.player.y = this.gameObjectBaseY + 10;
-
-		// Apply animation based on current player type
-		switch (this.playerType) {
-			case 'R': // Rock: Bob up/down
-				this.tweens.add({
-					targets: this.player,
-					y: this.player.y - constants.ROCK_BOB_AMOUNT, // Move player sprite up
-					duration: constants.ROCK_BOB_DURATION,
-					ease: 'Sine.easeInOut',
-					yoyo: true,
-					repeat: -1,
-				});
-				break;
-			case 'P': // Paper: Rotate back and forth
-				this.tweens.add({
-					targets: this.player,
-					rotation: { from: 0, to: constants.PAPER_ROTATE_AMOUNT },
-					duration: constants.PAPER_ROTATE_DURATION,
-					ease: 'Sine.easeInOut',
-					yoyo: true,
-					repeat: -1,
-				});
-				break;
-			case 'S': // Scissors: Scale up/down
-				const initialScale = 40 / 120;
-				this.tweens.add({
-					targets: this.player,
-					scaleX: initialScale + constants.SCISSORS_SCALE_AMOUNT,
-					scaleY: initialScale + constants.SCISSORS_SCALE_AMOUNT,
-					duration: constants.SCISSORS_SCALE_DURATION,
-					ease: 'Sine.easeInOut',
-					yoyo: true,
-					repeat: -1,
-				});
-				break;
-			default:
-				// No animation for unknown type, ensure properties are reset
-				this.player.rotation = 0;
-				this.player.setScale(40 / 120);
-				this.player.y = this.gameObjectBaseY + 10;
-				break;
-		}
-	}
-
-	randomizePlayerType() {
-		this.playerType = Phaser.Math.RND.pick(constants.ENEMY_TYPES);
-		this.player.setTexture(this.getAssetKeyFromType(this.playerType));
-		this.applyPlayerAnimation(); // Call the new animation function
-	}
-
 	createRPSButton(
 		x,
 		y,
@@ -716,9 +640,7 @@ class MainScene extends Phaser.Scene {
 			.setInteractive()
 			.on('pointerdown', () => {
 				if (!this.game_over && !this.isPaused) {
-					this.playerType = buttonType;
-					this.player.setTexture(assetKey);
-					this.applyPlayerAnimation(); // Call the new animation function
+					this.player.setType(buttonType); // Use the Player class's method
 				}
 			});
 		return button;
@@ -834,7 +756,7 @@ class MainScene extends Phaser.Scene {
 
 			const winner = constants.GOD_MODE
 				? 'Player'
-				: this.duel(this.playerType, enemySprite.type);
+				: this.duel(this.player.type, enemySprite.type); // Access player type from the Player instance
 
 			if (winner === 'Enemy') {
 				this.sound.play('injury', { volume: constants.SFX_VOLUME });
