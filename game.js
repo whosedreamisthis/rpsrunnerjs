@@ -236,7 +236,7 @@ class MainScene extends Phaser.Scene {
 
 		// --- Settings Button (rightmost) ---
 		this.settingsButton = this.add
-			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙', {
+			.text(WINDOW_WIDTH - UI_TOP_RIGHT_MARGIN, UI_BUTTON_TOP_Y, '⚙️', {
 				// <--- Changed to '⚙'
 				fontFamily: 'Courier Prime, Courier, monospace',
 				fontSize: '30px',
